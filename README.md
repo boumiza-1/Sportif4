@@ -33,3 +33,12 @@ CONFIGURATION 10/10/2026: firebase.js already contains the supplied Firebase Web
 - La case Email du service client a été enlevée des Paramètres. L'email de connexion Admin reste obligatoire avec Firebase Email/Password.
 - IMPORTANT: Pour autoriser les uploads en toute sécurité, les règles `storage.rules` utilisent un **custom claim `admin: true`** qui DOIT être attribué à l'utilisateur administrateur avec le Firebase Admin SDK depuis un environnement sûr; `admins/UID = admin` dans Realtime Database ne suffit PAS pour les règles Storage. Ne jamais mettre une clé Admin SDK/service account sur GitHub. Firebase Storage peut exiger un compte de facturation. Tant que le custom claim et Firebase Storage ne sont pas configurés, l'upload sera refusé (`storage/unauthorized`).
 - Ces règles sont intentionnellement restrictives : ne pas autoriser tout utilisateur connecté à uploader.
+
+
+## Cloudinary (ajout octobre 2026)
+- Cloud Name: `b1gbrfyv`
+- Upload Preset: `sportifano_upload` (Unsigned)
+- `admin.html` -> Produits -> Choisir une photo; Paramètres -> Couverture.
+- Fichier `cloudinary.js` : upload direct de JPG/PNG/WEBP jusqu'à 5 Mo, puis sauvegarde de l'URL dans Realtime Database.
+- **Important** : vérifiez que `sportifano_upload` est bien en mode Unsigned et que les formats/taille maximale sont limités dans Cloudinary. Un preset Unsigned n'est **pas** réservé au seul administrateur : toute personne le découvrant dans le code public peut potentiellement téléverser des images. Pour une mise en production sécurisée, utilisez un backend de signature des uploads, avec contrôle admin; n'exposez jamais l'API Secret côté GitHub Pages.
+- Les commandes stockées côté navigateur ne sont pas une source de vérité financière : prix et stocks doivent être vérifiés côté serveur avant ventes réelles.

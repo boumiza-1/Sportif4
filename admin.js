@@ -1,12 +1,15 @@
-import {auth,db,storage,configured} from './firebase.js';
+import {auth,db,configured} from './firebase.js';
 import {money,safe,imageFallback,toast,readableError,demoProducts} from './common.js';
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,setDoc,addDoc,updateDoc,deleteDoc,serverTimestamp} from './database-api.js';
-import {ref,uploadBytes,getDownloadURL} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-storage.js';
+import {uploadCloudinaryImage} from './cloudinary.js';
 const $=s=>document.querySelector(s);let user=null,products=[],orders=[],categories=[],settings={},tab='dashboard',isAdmin=false;
 const statuses={pending:'En attente',confirmed:'Confirmée',shipped:'Expédiée',delivered:'Livrée',cancelled:'Annulée'};
 function showPreview(el,url){if(!el)return;el.classList.toggle('hidden',!url);if(url)el.src=url;else el.removeAttribute('src')}
-async function uploadImage(file,folder,progress){if(file.size>5*1024*1024)throw Error('Image trop lourde (5 Mo maximum)');if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Format non accepté');if(!auth.currentUser)throw Error('Connectez-vous');if(progress)progress.textContent='Envoi image...';let path=`${folder}/${auth.currentUser.uid}/${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi,'_')}`;const target=ref(storage,path);await uploadBytes(target,file,{contentType:file.type});if(progress)progress.textContent='Image envoyée';return await getDownloadURL(target)}
+async function uploadImage(file,folder,progress){
+ if(!auth.currentUser||!isAdmin)throw Error('Accès administrateur requis');
+ return uploadCloudinaryImage(file,folder,progress);
+}
 function choosePreview(input,el){let file=input.files?.[0];if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){input.value='';toast('Image JPG/PNG/WEBP, max 5 Mo');return}let url=URL.createObjectURL(file);showPreview(el,url);el.onload=()=>URL.revokeObjectURL(url)}
 const table=(heads,rows)=>`<table class="data-table"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${heads.length}" class="muted">Aucune donnée</td></tr>`}</tbody></table>`;
 function showTab(name){tab=name;document.querySelectorAll('.admin-section').forEach(x=>x.classList.toggle('hidden',x.id!==name+'Tab'));document.querySelectorAll('#adminNav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));const titles={dashboard:'Tableau de bord',products:'Produits',orders:'Commandes',categories:'Catégories',settings:'Paramètres'};$('#pageTitle').textContent=titles[name];$('#pageBreadcrumb').textContent='GESTION / '+titles[name].toUpperCase();$('.admin-sidebar').classList.remove('open')}
