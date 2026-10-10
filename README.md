@@ -42,3 +42,12 @@ CONFIGURATION 10/10/2026: firebase.js already contains the supplied Firebase Web
 - Fichier `cloudinary.js` : upload direct de JPG/PNG/WEBP jusqu'à 5 Mo, puis sauvegarde de l'URL dans Realtime Database.
 - **Important** : vérifiez que `sportifano_upload` est bien en mode Unsigned et que les formats/taille maximale sont limités dans Cloudinary. Un preset Unsigned n'est **pas** réservé au seul administrateur : toute personne le découvrant dans le code public peut potentiellement téléverser des images. Pour une mise en production sécurisée, utilisez un backend de signature des uploads, avec contrôle admin; n'exposez jamais l'API Secret côté GitHub Pages.
 - Les commandes stockées côté navigateur ne sont pas une source de vérité financière : prix et stocks doivent être vérifiés côté serveur avant ventes réelles.
+
+
+## Correction du blocage "Envoi image"
+- `cloudinary.js` now limits each upload to 25 seconds and shows the API error.
+- Upload preset `sportifano_upload` must be **Unsigned**, active, and allow JPG/PNG/WEBP under 5 MB.
+- Commit ALL root files to GitHub including `cloudinary.js` and configured `firebase.js`.
+- If the error says "Upload preset not found" or "must be signed", fix preset settings in Cloudinary.
+- If the error says "permission_denied", inspect Firebase Realtime Database rules.
+- Security: unsigned uploads are not administrator-only; production should use an authenticated upload service.
