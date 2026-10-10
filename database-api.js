@@ -12,7 +12,8 @@ export async function getDocs(c){
   const result=obj(snap.val());return {docs:Object.entries(result).map(([id,value])=>({id,data:()=>decode(value)}))};
 }
 export async function getDoc(d){const s=await get(ref(d.db,d.path));return {exists:()=>s.exists(),data:()=>decode(s.val())};}
-export async function addDoc(c,value){const r=push(ref(c.db,c.path));await set(r,value);return {id:r.key};}
+function withWriteTimeout(promise){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Firebase ne répond pas après 20 secondes. Vérifiez les règles Realtime Database et la connexion. Ne relancez pas avant de vérifier si la donnée existe.')),20000)})]).finally(()=>clearTimeout(timer));}
+export async function addDoc(c,value){const r=push(ref(c.db,c.path));await withWriteTimeout(set(r,value));return {id:r.key};}
 export async function setDoc(d,value){await set(ref(d.db,d.path),value);}
-export async function updateDoc(d,value){await update(ref(d.db,d.path),value);}
+export async function updateDoc(d,value){await withWriteTimeout(update(ref(d.db,d.path),value));}
 export async function deleteDoc(d){await remove(ref(d.db,d.path));}
