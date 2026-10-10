@@ -22,3 +22,6 @@ Store starts without fake products; add your own from admin. An optional button 
 - Customer orders require signing in; a customer can view only their orders via filtered RTDB queries.
 - Dynamic product/catalog updates require refresh. CSS motion design changes with hover and viewport, but **Google does not automatically redesign this website**. Google Fonts used for typography; other external images are optional and sourced from public URLs.
 - A custom domain like `www.sportifano.com` can later point to GitHub Pages with DNS + Pages settings.
+
+
+CONFIGURATION 10/10/2026: firebase.js already contains the supplied Firebase Web configuration for sport24-b111c. Realtime Database rules must be published separately in Firebase Console. Authentication Email/Password and admins/UID="admin" must be enabled. Firebase storage image upload requires configured storage rules and available Storage service. This is not a payment-processing or server-side verified stock/order system.
