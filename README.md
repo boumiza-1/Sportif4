@@ -25,3 +25,11 @@ Store starts without fake products; add your own from admin. An optional button 
 
 
 CONFIGURATION 10/10/2026: firebase.js already contains the supplied Firebase Web configuration for sport24-b111c. Realtime Database rules must be published separately in Firebase Console. Authentication Email/Password and admins/UID="admin" must be enabled. Firebase storage image upload requires configured storage rules and available Storage service. This is not a payment-processing or server-side verified stock/order system.
+
+
+## Photos et couverture (mise à jour)
+- Admin > Produits > Ajouter > choisir photo: aperçu avant envoi, puis upload dans Firebase Storage et URL sauvegardée sous `products`.
+- Admin > Paramètres > Couverture accueil: envoyer une image puis enregistrer. La boutique affichera cette image sur l'accueil.
+- La case Email du service client a été enlevée des Paramètres. L'email de connexion Admin reste obligatoire avec Firebase Email/Password.
+- IMPORTANT: Pour autoriser les uploads en toute sécurité, les règles `storage.rules` utilisent un **custom claim `admin: true`** qui DOIT être attribué à l'utilisateur administrateur avec le Firebase Admin SDK depuis un environnement sûr; `admins/UID = admin` dans Realtime Database ne suffit PAS pour les règles Storage. Ne jamais mettre une clé Admin SDK/service account sur GitHub. Firebase Storage peut exiger un compte de facturation. Tant que le custom claim et Firebase Storage ne sont pas configurés, l'upload sera refusé (`storage/unauthorized`).
+- Ces règles sont intentionnellement restrictives : ne pas autoriser tout utilisateur connecté à uploader.
