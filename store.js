@@ -16,7 +16,7 @@ let index=0;
 const image=$('#heroProductImage'),name=$('#heroProductName'),category=$('#heroProductCategory'),description=$('#heroProductDescription'),price=$('#heroProductPrice'),count=$('#heroProductCount'),details=$('#heroProductDetails');
 function show(next){
 index=(next+list.length)%list.length;const p=list[index];
-image.style.backgroundImage='linear-gradient(180deg,rgba(0,0,0,.03) 20%,rgba(0,0,0,.35)),url("'+String(p.image).replace(/\\/g,'').replace(/"/g,'%22')+'")';
+image.style.backgroundImage='none';image.innerHTML='<img class="hero-product-png" src="'+String(p.image||imageFallback).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'" alt="'+String(p.name||'Produit Sportifano').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">';const productImg=image.querySelector('img');productImg.onerror=()=>{productImg.src=imageFallback;productImg.classList.add('is-fallback')};
 image.classList.remove('hero-image-enter');void image.offsetWidth;image.classList.add('hero-image-enter');
 name.textContent=p.name||'Produit Sportifano';category.textContent=p.category||'COLLECTION SPORTIFANO';description.textContent=p.description||'Découvrez ce produit et ses caractéristiques.';price.textContent=money(p.price);count.textContent=String(index+1).padStart(2,'0')+' / '+String(list.length).padStart(2,'0');
 details.onclick=()=>viewProduct(p.id);
