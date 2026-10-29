@@ -62,3 +62,35 @@ html{scroll-behavior:smooth}button,a,input,select{transition:transform .22s ease
 @keyframes heroProductReveal{from{opacity:.55;transform:scale(1.025)}to{opacity:1;transform:scale(1)}}
 .hero-image.hero-image-enter{animation:heroProductReveal .5s ease both}
 @media(max-width:680px){.hero-photo{min-height:530px}.hero-product-card{left:12px;right:12px;bottom:12px;padding:17px}.hero-product-card h2{font-size:26px}.hero-product-bottom strong{font-size:21px}.hero-product-bottom button{padding:11px 9px;font-size:8px}.hero-stamp{top:18px;bottom:auto;left:18px;width:78px;height:78px}.hero-stamp strong{font-size:39px}}
+
+/* FULLSCREEN SPORTIFANO PRODUCT EXPERIENCE */
+.hero-fullscreen{background:#d6fa35;color:#141717;min-height:calc(100svh - 100px);display:flex;align-items:stretch;overflow:hidden}
+.hero-fullscreen .hero-grid{width:100%;max-width:none;min-height:calc(100svh - 100px);grid-template-columns:42% 58%;gap:0}
+.hero-fullscreen .hero-content{color:#141717;padding:clamp(38px,6vw,100px) clamp(24px,5vw,80px);justify-content:center;position:relative;z-index:3}
+.hero-fullscreen .eyebrow{color:#171a1a}.hero-fullscreen .mini-rule{background:#171a1a}
+.hero-fullscreen .hero h1{color:#141717}
+.hero-fullscreen .hero-content>p{color:#333b25;max-width:440px}
+.hero-fullscreen .hero-cta>span{color:#414832}
+.hero-fullscreen .hero-photo{min-height:calc(100svh - 100px);display:flex;align-items:center;justify-content:center;background:#d6fa35;overflow:hidden}
+.hero-fullscreen .hero-image{position:absolute;inset:0;background:#d6fa35!important;opacity:1}
+.hero-fullscreen #heroProductImage{display:flex;align-items:center;justify-content:center;background:none!important;inset:4% 2% 13%;overflow:visible}
+.hero-product-png{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 30px 25px rgba(25,30,10,.18));animation:productFloat 4.5s ease-in-out infinite;transition:opacity .28s,transform .45s;transform-origin:center}
+.hero-product-png.is-fallback{object-fit:cover}
+.hero-fullscreen .hero-product-card{left:auto;right:clamp(18px,3vw,48px);bottom:clamp(18px,3vw,45px);width:min(400px,54%);background:rgba(255,255,255,.88);backdrop-filter:blur(18px);border:1px solid rgba(20,23,23,.12);color:#141717;box-shadow:0 18px 55px rgba(20,23,23,.1);border-radius:2px}
+.hero-fullscreen .hero-product-card>span{color:#718800}
+.hero-fullscreen .hero-product-card p{color:#4d5145}
+.hero-fullscreen .hero-product-bottom{border-top-color:#14171720}
+.hero-fullscreen .hero-product-bottom strong{color:#141717}
+.hero-fullscreen .hero-product-controls button{border-color:#14171750;color:#141717}
+.hero-fullscreen .hero-product-controls button:hover{background:#141717;color:#d6fa35;border-color:#141717}
+.hero-fullscreen .hero-product-controls span{color:#141717}
+.hero-fullscreen .hero-stamp{top:28px;left:28px;bottom:auto;background:#141717;color:#d6fa35;z-index:2}
+.hero-fullscreen .vertical-word{color:#141717;right:12px;z-index:2}
+@keyframes productFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.015)}}
+@keyframes productSwap{from{opacity:.3;transform:translateX(28px) scale(.97)}to{opacity:1;transform:translateX(0) scale(1)}}
+.hero-fullscreen .hero-product-png{animation:productSwap .55s ease both,productFloat 4.5s ease-in-out .55s infinite}
+@media(min-width:1500px){.hero-fullscreen .hero-grid{grid-template-columns:40% 60%}.hero-fullscreen .hero-content{padding-left:max(5vw,calc((100vw - 1500px)/2))}}
+@media(max-width:680px){
+.hero-fullscreen{min-height:auto}.hero-fullscreen .hero-grid{display:flex;flex-direction:column;min-height:auto}.hero-fullscreen .hero-content{padding:48px 24px 30px}.hero-fullscreen .hero h1{font-size:clamp(68px,17vw,100px);letter-spacing:-5px}.hero-fullscreen .hero-photo{min-height:70svh}.hero-fullscreen #heroProductImage{inset:3% 0 22%}.hero-fullscreen .hero-product-card{left:12px;right:12px;bottom:12px;width:auto}.hero-fullscreen .hero-stamp{top:16px;left:16px;width:70px;height:70px}.hero-fullscreen .hero-stamp strong{font-size:36px}.hero-fullscreen .vertical-word{display:none}
+}
+@media(prefers-reduced-motion:reduce){.hero-product-png,.hero-fullscreen .hero-product-png{animation:none!important}}
