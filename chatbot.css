@@ -50,3 +50,9 @@
 #sf-assistant button:focus-visible,#sf-assistant a:focus-visible{outline:2px solid #7d9f00;outline-offset:2px}
 @media(max-width:520px){#sf-assistant{right:12px;bottom:12px}#sf-assistant .sf-chat-panel{width:calc(100vw - 24px);height:min(630px,calc(100dvh - 90px))}#sf-assistant .sf-chat-trigger{padding:8px;border-radius:50%}#sf-assistant .sf-chat-trigger-text{display:none}#sf-assistant .sf-chat-trigger-symbol{width:42px;height:42px}}
 @media(prefers-reduced-motion:reduce){#sf-assistant *{animation:none!important;transition:none!important}}
+
+/* Guided product and cart selections */
+#sf-assistant .sf-chat-cart-controls{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 4px;padding:2px 0}
+#sf-assistant .sf-chat-cart-controls .sf-chat-option{white-space:normal;text-align:start;line-height:1.4;background:#f1f8d5;border:1px solid #b4d15b;color:#202b19;max-width:100%}
+#sf-assistant .sf-chat-cart-controls .sf-chat-option:first-child{background:#d6fa35;font-weight:800}
+#sf-assistant .sf-chat-cart-controls .sf-chat-option:focus-visible{outline:2px solid #384a0e;outline-offset:2px}
