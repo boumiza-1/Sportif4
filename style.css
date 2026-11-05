@@ -94,3 +94,28 @@ html{scroll-behavior:smooth}button,a,input,select{transition:transform .22s ease
 .hero-fullscreen{min-height:auto}.hero-fullscreen .hero-grid{display:flex;flex-direction:column;min-height:auto}.hero-fullscreen .hero-content{padding:48px 24px 30px}.hero-fullscreen .hero h1{font-size:clamp(68px,17vw,100px);letter-spacing:-5px}.hero-fullscreen .hero-photo{min-height:70svh}.hero-fullscreen #heroProductImage{inset:3% 0 22%}.hero-fullscreen .hero-product-card{left:12px;right:12px;bottom:12px;width:auto}.hero-fullscreen .hero-stamp{top:16px;left:16px;width:70px;height:70px}.hero-fullscreen .hero-stamp strong{font-size:36px}.hero-fullscreen .vertical-word{display:none}
 }
 @media(prefers-reduced-motion:reduce){.hero-product-png,.hero-fullscreen .hero-product-png{animation:none!important}}
+
+/* Searchable storefront pages keep the same Sportifano visual language. */
+.hero h1 .hero-seo-heading{display:block;max-width:430px;font:700 clamp(16px,1.5vw,22px)/1.5 'DM Sans',sans-serif;letter-spacing:0;margin-top:24px;color:#28311d}
+.breadcrumbs{display:flex;flex-wrap:wrap;gap:9px;padding-top:28px;padding-bottom:24px;color:#62696a;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
+.breadcrumbs a{text-decoration:underline;text-underline-offset:3px}
+.seo-main{min-height:45vh}.seo-product{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,78px);align-items:start;padding-bottom:60px}
+.seo-product-image{background:#f4f5f0;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px}
+.seo-product-image img{width:100%;height:100%;object-fit:contain}
+.seo-product-copy{min-width:0;padding:22px 0}.seo-product h1,.seo-main .collection h1,.seo-info h1{font:800 clamp(30px,4.2vw,54px)/1.12 Outfit,sans-serif;letter-spacing:-1px;overflow-wrap:anywhere;margin:12px 0 24px}
+.seo-description,.seo-intro,.seo-info p,.seo-info li{font-size:15px;line-height:1.85;color:#545d5c;white-space:pre-line;overflow-wrap:anywhere}
+.seo-product .detail-price{font:800 30px Outfit;margin:0 0 16px}.seo-product [data-seo-stock]{font-size:13px;font-weight:700;color:#4a601d;line-height:1.7}
+.seo-attributes{border-top:1px solid var(--line);padding:12px 0;margin:26px 0}
+.seo-attributes>div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;padding:10px 0;font-size:13px;line-height:1.7}
+.seo-attributes dt{font-weight:800}.seo-attributes dd{margin:0;overflow-wrap:anywhere}
+.seo-stock-note{font-size:12px;line-height:1.8;color:#62696a;margin:18px 0}
+.seo-info{max-width:900px;padding-top:20px;padding-bottom:80px}.seo-info h2{font:700 25px Outfit;margin:32px 0 15px}.seo-info a:not(.btn){text-decoration:underline;text-underline-offset:3px}
+.filters a{display:inline-block;border:1px solid var(--line);background:#fff;padding:12px 18px;font-weight:800;font-size:11px;line-height:1.4}
+.filters a.active{background:#191c1c;color:white;border-color:#191c1c}.filters a:hover{border-color:#789b00}
+.product-image-link{display:block}.product-info h3 a:hover{text-decoration:underline;text-underline-offset:3px}
+.product-image-link:focus-visible{outline:3px solid #617d00;outline-offset:3px}.product-image-link:focus .product-add{opacity:1;transform:none}
+.catalog-status{font-size:13px;line-height:1.7;background:#f5f8e8;border-left:3px solid #8ca718;padding:14px;color:#4c5731}
+button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visible{outline:3px solid #718e0c;outline-offset:4px}
+@media(max-width:680px){.seo-product{grid-template-columns:1fr;gap:18px;padding-bottom:30px}.seo-product-copy{padding:8px 0}.seo-product h1{font-size:32px}.seo-product .btn{width:100%;font-size:11px}.seo-description,.seo-info p,.seo-info li,.seo-intro{font-size:14px}.breadcrumbs{font-size:11px;padding-top:20px;padding-bottom:18px}.seo-attributes>div{grid-template-columns:82px minmax(0,1fr)}.seo-info{padding-bottom:50px}.filters a{padding:10px 13px}.hero h1 .hero-seo-heading{font-size:17px;max-width:300px}.product-add{opacity:1;transform:none}}
+.product-pic{display:block}.product-title-button{border:0;background:none;padding:0;text-align:left;color:inherit;font:inherit;line-height:inherit}.product-title-button:hover{text-decoration:underline}.product-pic:is(button){width:100%;padding:0;border:0;text-align:left}.seo-image-placeholder{display:grid;place-items:center;min-height:180px;padding:24px;color:#69715c;font-size:14px}.seo-search-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.hero-fullscreen h1 i{color:#141717}
