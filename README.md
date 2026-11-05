@@ -1,10 +1,10 @@
 # SPORTIFANO — Boutique + Admin — GitHub Pages + Firebase RTDB
 
 ## Architecture
-All files sit **directly at the repository root**. `index.html` = customer storefront. `admin.html` = management. No PHP, Python, server process, or build step needed.
+The storefront source remains at the repository root. `index.html` is the customer template and `admin.html` is management. GitHub Actions now generates the public site in `dist`, including real product/collection HTML pages, from the public Firebase catalog. No PHP or application server is required. See [SEO.md](SEO.md) for the publishing workflow, update schedule, tests and Search Console steps.
 
 ### Setup
-1. Upload every file to your GitHub repository root (main). Settings > Pages > Deploy from branch > main > /(root).
+1. Keep the source files on `main`. The **Publish SEO storefront** GitHub Actions workflow builds and publishes the site. It preserves `www.sportifano.com` and selects GitHub Actions as the Pages source after a successful build; if GitHub refuses the setting update, choose Settings > Pages > Source > GitHub Actions and rerun the workflow. Do not publish the source folder directly: generated product and collection pages live in the build artifact.
 2. Firebase Console > project sport24-b111c > Project settings > Your apps > add Web app. Copy **apiKey**, **messagingSenderId**, **appId** to `firebase.js`. Auth domain, databaseURL and projectId are already included; check storageBucket if changed.
 3. Authentication > Sign-in method > enable Email/Password. Add your admin account in Users.
 4. Realtime Database > Data > `admins` > `<YOUR COMPLETE UID>` = string `admin`. **Only the Firebase console project owner should set this**. Rules below prevent clients from editing admin privileges.
@@ -20,8 +20,8 @@ Store starts without fake products; add your own from admin. An optional button 
 - Cash on delivery only; no online payment integration.
 - Images use public HTTPS URLs, not Firebase Storage upload. `storage.rules` denies uploads until a secure admin upload backend is implemented.
 - Customer orders require signing in; a customer can view only their orders via filtered RTDB queries.
-- Dynamic product/catalog updates require refresh. CSS motion design changes with hover and viewport, but **Google does not automatically redesign this website**. Google Fonts used for typography; other external images are optional and sourced from public URLs.
-- A custom domain like `www.sportifano.com` can later point to GitHub Pages with DNS + Pages settings.
+- Live catalog updates appear after refresh; indexable static pages are regenerated on code publication and hourly by GitHub Actions (or manually through Run workflow). CSS motion design changes with hover and viewport, but **Google does not automatically redesign this website**. Google Fonts used for typography; other external images are optional and sourced from public URLs.
+- The canonical domain is `https://www.sportifano.com`, matching `CNAME` and `seo.config.json`. Preserve its existing DNS and Pages domain settings.
 
 
 CONFIGURATION 10/10/2026: firebase.js already contains the supplied Firebase Web configuration for sport24-b111c. Realtime Database rules must be published separately in Firebase Console. Authentication Email/Password and admins/UID="admin" must be enabled. Firebase storage image upload requires configured storage rules and available Storage service. This is not a payment-processing or server-side verified stock/order system.

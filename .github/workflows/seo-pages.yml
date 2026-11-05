@@ -29,9 +29,28 @@ jobs:
         with:
           node-version: '24'
       - name: Test static generation
-        run: node tests/seo-build.test.mjs
+        run: |
+          node tests/seo-build.test.mjs
+          node tests/seo-live-check.test.mjs
       - name: Generate pages from the public Firebase catalog
         run: node scripts/build-seo.mjs --out dist
+      - name: Summarize generated public pages
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { productPath } from './seo-shared.mjs';
+          const summary = JSON.parse(readFileSync('dist/seo-build.json', 'utf8'));
+          const catalog = JSON.parse(readFileSync('dist/catalogue.json', 'utf8'));
+          const lines = [
+            '## Generated SEO pages',
+            `Source commit: ${summary.sourceCommit}`,
+            `Visible products: ${summary.products}`,
+            `Populated collections: ${summary.indexableCategories}`,
+            `Sitemap URLs: ${summary.sitemapUrls}`,
+            ...catalog.products.slice(0, 3).map(p => summary.baseUrl + productPath(p.id))
+          ];
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n\n') + '\n');
+          NODE
       - name: Upload complete site
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
@@ -44,12 +63,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check out deployment verification
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
       # configure-pages only discovers an existing site; it does not migrate
       # legacy branch publishing. Switch the source only after a complete build
       # succeeded, and omit cname/source so the existing domain is preserved.
@@ -90,3 +118,27 @@ jobs:
       - name: Deploy generated storefront
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+
+      - name: Verify the published SEO pages
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          node scripts/check-live-seo.mjs > /tmp/sportifano-live-seo.json
+          cat /tmp/sportifano-live-seo.json
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const result = JSON.parse(readFileSync('/tmp/sportifano-live-seo.json', 'utf8'));
+          const lines = [
+            '## Published site verification',
+            `Status: ${result.status}`,
+            `Canonical site: ${result.baseUrl}`,
+            `Source commit: ${result.sourceCommit}`,
+            `Published products: ${result.publishedProducts}`,
+            `Checked product pages: ${result.checkedProducts}`,
+            `Sitemap URLs: ${result.sitemapUrls}`,
+            `Redirect warnings: ${result.redirectWarnings.length}`,
+            ...result.redirectChecks.map(r => `${r.from} → ${r.finalUrl || r.error}: ${r.ok ? 'OK' : 'requires domain settings review'}`)
+          ];
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n\n') + '\n');
+          NODE

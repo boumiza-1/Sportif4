@@ -79,7 +79,7 @@ function renderProducts(){
 }
 
 const validPrice=p=>p&&(typeof p.price==='number'||typeof p.price==='string')&&String(p.price).trim()!==''&&Number.isFinite(Number(p.price))&&Number(p.price)>=0;
-const stockState=p=>p.stock===null||p.stock===undefined||String(p.stock).trim()===''||typeof p.stock==='boolean'||!Number.isFinite(Number(p.stock))||Number(p.stock)<0?'unknown':Number(p.stock)>0?'available':'unavailable';
+const stockState=p=>!['number','string'].includes(typeof p.stock)||p.stock===null||p.stock===undefined||String(p.stock).trim()===''||typeof p.stock==='boolean'||!Number.isFinite(Number(p.stock))||Number(p.stock)<0?'unknown':Number(p.stock)>0?'available':'unavailable';
 function refreshProductSchema(product){
   for(const script of document.querySelectorAll('script[type="application/ld+json"]')){
     let data;try{data=JSON.parse(script.textContent)}catch{continue}

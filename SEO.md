@@ -29,8 +29,11 @@ Au premier déploiement réussi sur `main`, le workflow tente de sélectionner *
 ## Vérifications locales
 
 - `node tests/seo-build.test.mjs` : génération, échappement, prix/stock, liens, sitemap, données privées exclues, refus d’effacement de dossiers étrangers.
+- `node tests/seo-live-check.test.mjs` : vérification du contrôleur de publication et des erreurs de canonical, prix, sitemap et version déployée.
 - `node tests/seo-browser.cjs` : avec Playwright/Chromium installés, lecture sans JavaScript, navigation, options, panier, données actuelles, pannes et mobile. `CHROMIUM_PATH` sélectionne le binaire si nécessaire. Ces tests utilisent exclusivement des données simulées.
 - `node scripts/build-seo.mjs --data /chemin/catalogue.json --out /tmp/sportifano-site` : génération de contrôle à partir d’un export public `{ "products": { ... }, "settings": { ... } }`. Sans `--data`, la commande lit le catalogue public réel.
+
+Le workflow vérifie également le domaine public après déploiement : commit exact publié, accueil, sitemap/robots, jusqu’à trois fiches produit, une collection, les pages de contact/livraison et le noindex Admin. Il signale séparément les variantes HTTP/sans www qui nécessitent éventuellement une correction DNS/hébergement. Les résultats apparaissent dans le résumé GitHub Actions.
 
 ## Après publication : Google
 
