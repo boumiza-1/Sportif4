@@ -82,6 +82,8 @@ jobs:
       # legacy branch publishing. Switch the source only after a complete build
       # succeeded, and omit cname/source so the existing domain is preserved.
       - name: Select workflow publishing for the existing Pages site
+        id: pages-source
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -96,7 +98,9 @@ jobs:
           };
           const current = await fetch(endpoint, { headers });
           if (!current.ok) {
-            throw new Error(`Cannot read the existing GitHub Pages settings (HTTP ${current.status}). No site settings were changed.`);
+            const body = await current.json().catch(() => ({}));
+            console.log('::warning::' + `Cannot read Pages settings: HTTP ${current.status}; ${body.message || 'no API detail'}. Trying the official deployment action without changing settings.`.replace(/[\r\n]/g, ' '));
+            process.exit(1);
           }
           const site = await current.json();
           if (site.build_type !== 'workflow') {
@@ -106,7 +110,9 @@ jobs:
               body: JSON.stringify({ build_type: 'workflow' })
             });
             if (!response.ok) {
-              throw new Error(`GitHub refused the Pages source update (HTTP ${response.status}). The owner must select Settings > Pages > Source > GitHub Actions, then rerun this workflow. The existing domain was not edited.`);
+              const body = await response.json().catch(() => ({}));
+              console.log('::warning::' + `Pages source update refused: HTTP ${response.status}; ${body.message || 'no API detail'}. Trying the official deployment action; the custom domain is unchanged.`.replace(/[\r\n]/g, ' '));
+              process.exit(1);
             }
             console.log('Pages source changed to GitHub Actions; the custom domain was preserved.');
           } else {
