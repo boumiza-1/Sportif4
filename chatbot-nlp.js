@@ -69,6 +69,38 @@
     const m=v.match(/(?:pointure|taille|size|9yas|قياس|مقاس)\s*(\d{2,3}|xxl|xl|xs|s|m|l)\b/i);
     return m?String(m[1]).toUpperCase():null;
   }
+  const cartVerbs=['ajoute','ajouter','ajoutez','mets','mettez','mettre','met','add to cart','add in cart','add au panier','dans le panier','au panier','mon panier','fel panier','fil panier','l panier','lel panier','panier','hottli','hotli','7otli','7ottli','hot','hott','7ot','7ott','zidli','zid','zidou','zidhali','nheb nekhoudh','nheb nechri','bch nechri','ncommandi','nkomondi','ektebli','حطلي','حطّلي','حط','زيدلي','زيد','ضيف','اضف','أضف','للسلة','في السلة','للبانيي','في البانيي','للباني','فالباني','في الباني','نحب نشري','نحب ناخو','نحب نكوموندي'];
+  const colorGroups={
+    noir:['noir','noire','black','k7el','ak7el','kahl','كحل','اكحل','أسود','اسود'],
+    blanc:['blanc','blanche','white','abyed','abyadh','بياض','ابيض','أبيض'],
+    bleu:['bleu','blue','azra9','زرڨ','زرق','ازرق','أزرق'],
+    rouge:['rouge','red','a7mer','ahmar','احمر','أحمر'],
+    vert:['vert','green','akhdher','akhder','اخضر','أخضر'],
+    gris:['gris','gray','grey','rmadi','رمادي'],
+    rose:['rose','pink','وردي'],
+    jaune:['jaune','yellow','asfer','اصفر','أصفر'],
+    beige:['beige','بيج']
+  };
+  function cartRequest(value){
+    if(!has(value,cartVerbs))return null;
+    const v=norm(value);
+    const size=sizeOf(value);
+    const qm=v.match(/(?:\b([1-9])\s*(?:paires?|pieces?|articles?|produits?|x)\b)|(?:\bquantit(?:e|é)\s*([1-9])\b)|(?:\b([1-9])\s*(?:زوج|ازواج|قطع|وحدات)\b)/);
+    const qty=has(value,['زوز','zouz','zouze'])?2:qm?Number(qm[1]||qm[2]||qm[3]):1;
+    let color=null;
+    for(const [canonical,aliases] of Object.entries(colorGroups))if(has(value,aliases)){color=canonical;break;}
+    return {size,color,quantity:qty};
+  }
+  const matchColor=(requested,options)=>{
+    if(!requested)return null;
+    const choices=Array.isArray(options)?options.map(String):[];
+    return choices.find(item=>{
+      const n=norm(item);
+      if(n===norm(requested))return true;
+      const group=colorGroups[requested]||[requested];
+      return has(n,group);
+    })||null;
+  };
   function intent(value){
     if(has(value,lex.orderStatus))return 'orderStatus';
     if(has(value,lex.howOrder))return 'howOrder';
@@ -118,5 +150,5 @@
     if(!target&&targetWords.length&&!matching.some(x=>x.score>0))matching=[];
     return matching.slice(0,options.limit||4).map(x=>x.p);
   }
-  return {norm,has,lex,language,typeOf,genderOf,budgetOf,sizeOf,intent,search,productHasType,validPrice};
+  return {norm,has,lex,language,typeOf,genderOf,budgetOf,sizeOf,intent,search,productHasType,validPrice,cartRequest,matchColor};
 });
