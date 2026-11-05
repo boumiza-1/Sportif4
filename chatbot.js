@@ -6,34 +6,56 @@
   const root = document.createElement('div');
   root.id = 'sf-assistant';
   document.body.append(root);
-  const state = {lang:'fr', catalog:[], settings:{}, open:false, loaded:false, history:[], recognizer:null};
+  const state = {lang:'tn', catalog:[], settings:{}, open:false, loaded:false, history:[], recognizer:null};
   const i18n = {
     fr:{hello:'Bonjour 👋 Bienvenue chez Sportifano ! Je peux vous aider à trouver un article, une taille ou un prix.',prompt:'Posez votre question…',send:'Envoyer',label:'Assistant Sportifano',online:'Votre assistant shopping',start:['Voir les produits','Livraison','Paiement','Contact'],noProducts:'Je ne trouve pas de produit correspondant dans le catalogue. Essayez une autre catégorie ou consultez notre collection.',unknown:'Je peux vous aider avec les produits, les prix, les tailles, la livraison, le paiement et le contact. Que cherchez-vous ?',products:'Voici une sélection de notre boutique :',size:'Les tailles disponibles dépendent du modèle. Indiquez le produit qui vous intéresse, ou ouvrez sa fiche pour vérifier les tailles.',delivery:'Nous livrons en Tunisie. Les frais exacts sont indiqués lors de la commande. Le délai dépend de votre adresse et reste à confirmer avec la boutique.',payment:'Le paiement s’effectue à la livraison. Pas de paiement en ligne sur le site.',contact:'Pour joindre notre équipe, consultez notre page de contact.',stock:'Le stock peut changer. Vérifiez la fiche du produit et confirmez la disponibilité lors de la commande.',order:'Pour commander : choisissez un produit, sélectionnez les options, ajoutez-le au panier puis passez commande avec votre compte.',price:'Dites-moi le type d’article ou votre budget (ex. « chaussures moins de 150 DT ») pour voir les prix.',welcome:'Bonjour ! Dites-moi ce que vous cherchez 😊',more:'Voir le produit',catalogue:'Toute la collection',contactLink:'Nous contacter',shippingLink:'Livraison et paiement',empty:'Le catalogue est temporairement indisponible. Vous pouvez consulter la boutique ou contacter notre équipe.',thinking:'Je regarde…',voice:'Dicter un message',close:'Fermer',open:'Discuter avec nous',new:'Nouvelle discussion',privacy:'Ne partagez pas vos mots de passe ni vos données bancaires.',unknownStock:'Stock à confirmer',out:'Rupture de stock',available:'Disponible (à confirmer)',clear:'Discussion réinitialisée.',noVoice:'La dictée vocale n’est pas disponible sur ce navigateur.'},
     ar:{hello:'أهلاً وسهلاً 👋 مرحباً بكم في سبورتيفانو! أساعدكم في العثور على المنتجات والمقاسات والأسعار.',prompt:'اكتب سؤالك هنا…',send:'إرسال',label:'مساعد سبورتيفانو',online:'مساعد التسوق',start:['المنتجات','التوصيل','الدفع','اتصل بنا'],noProducts:'لم أجد منتجاً مطابقاً في المتجر. جرب نوعاً آخر أو تصفح المجموعة.',unknown:'يمكنني مساعدتك في المنتجات والأسعار والمقاسات والتوصيل والدفع والاتصال. ماذا تبحث عنه؟',products:'إليك بعض المنتجات المتوفرة في المتجر:',size:'المقاسات تختلف حسب المنتج. اذكر اسم المنتج أو افتح صفحته للتأكد من المقاسات.',delivery:'نوفر التوصيل داخل تونس. تظهر المصاريف عند الطلب، ويتم تأكيد مدة التوصيل حسب العنوان.',payment:'الدفع عند الاستلام. الدفع الإلكتروني غير متاح حالياً على الموقع.',contact:'يمكنك التواصل مع فريقنا من صفحة الاتصال.',stock:'المخزون قابل للتغيير. تأكد من صفحة المنتج عند الطلب.',order:'للطلب: اختر المنتج والمقاس، أضفه للسلة، ثم أكمل الطلب من حسابك.',price:'ما نوع المنتج وميزانيتك؟ مثلاً: أحذية أقل من 150 دينار.',welcome:'أهلاً! ماذا تبحث عنه؟ 😊',more:'عرض المنتج',catalogue:'جميع المنتجات',contactLink:'الاتصال بنا',shippingLink:'التوصيل والدفع',empty:'لا يمكن تحميل المنتجات حالياً. يرجى تصفح المتجر أو التواصل معنا.',thinking:'لحظة…',voice:'إملاء صوتي',close:'إغلاق',open:'تحدث معنا',new:'محادثة جديدة',privacy:'لا تشارك كلمة السر أو معلوماتك البنكية.',unknownStock:'التوفر غير مؤكد',out:'نفد المخزون',available:'متوفر (يرجى التأكيد)',clear:'بدأنا محادثة جديدة.',noVoice:'الإملاء الصوتي غير متاح في هذا المتصفح.'},
     tn:{hello:'عسلامة 👋 مرحبا بيك في Sportifano! شنوّة تحب تلقى؟ سبادري، دبش سبور، مقاسات ولا أسعار؟',prompt:'اسألني بالتونسي…',send:'ابعث',label:'مساعد Sportifano',online:'معاك في الشوبينغ',start:['ورّيني البرودويات','الليڥريزون','كيفاش نخلّص؟','نحب نتّصل'],noProducts:'ما لقيتش البرودوي اللي تحوّس عليه في الكاتالوغ. جرّب حاجة أخرى ولا شوف الكوليكسيون.',unknown:'ننجم نعاونك في البرودويات، السوام، المقاسات، الليڥريزون، الخلاص والكونتاكت. شنوّة يلزمك؟',products:'هاذم شوية برودويات من عندنا:',size:'المقاسات تتبدّل حسب المودال. قلّي شنوة البرودوي ولا حلّ صفحتو باش تتأكد.',delivery:'نوصلولك لوين ما كنت في تونس. معلوم الليڥريزون يبان وقت الكوموند، والمدة نأكّدوهالك حسب البلاصة.',payment:'تخلّص كي توصلك الكوموند، ما فماش خلاص أونلاين توّة.',contact:'تنجم تتّصل بينا من صفحة الكونتاكت.',stock:'الستوك ينجم يتبدّل. تثبّت في صفحة البرودوي وقت الكوموند.',order:'اختار البرودوي والمقاس، حطّو في البانيي وكمّل الكوموند بحسابك.',price:'قلّي شنوة تحب وقدّاش البودجي متاعك. مثال: سبادري أقل من 150 دينار.',welcome:'عسلامة! شنوّة تحب تلقى؟ 😊',more:'شوف البرودوي',catalogue:'شوف الكوليكسيون',contactLink:'كلّمنا',shippingLink:'الليڥريزون والخلاص',empty:'الكاتالوغ موش متاح توّة. تنجم تشوف السايت ولا تتّصل بينا.',thinking:'نشوفلك…',voice:'احكي بالصوت',close:'سكّر',open:'اسألنا',new:'محادثة جديدة',privacy:'ما تبعثش الموط دو باس ولا معلومات بنكية.',unknownStock:'الستوك موش مؤكّد',out:'الستوك وفى',available:'موجود (يلزم التأكيد)',clear:'بدّينا محادثة جديدة.',noVoice:'الكتابة بالصوت موش متاحة في المتصفح هذا.'}
   };
-  const dictionary = {
-    product:['produit','produits','article','articles','collection','catalogue','show','montre','cherche','avoir','sport','برودوي','برودويات','المنتجات','منتجات','اعرض','وريني','ورّيني','نحب نشوف','chouf','produit','produits','product','produit','collection','kateloug'],
-    shoe:['chaussure','chaussures','basket','baskets','sneaker','sneakers','running','shoes','سبادري','سبابط','حذاء','أحذية','صباط','sabbat','sbedri','sbabri','sneakers'],
-    man:['homme','hommes','men','رجال','رجالي','راجل','للرجال','rjel','rajeli'],
-    woman:['femme','femmes','women','نسائي','نساء','بنات','مرا','للبنات','bnet','nsa','femme'],
-    accessory:['accessoire','accessoires','sac','sacs','bag','حقيبة','اكسسوارات','أكسسوارات','ساك','sac'],
-    price:['prix','combien','coûte','coute','budget','dt','dinar','dinars','tnd','قداش','قدّاش','السعر','سعر','دينار','بقداش','souma','soum','9adech','9addech','9adach','prix'],
-    size:['taille','tailles','pointure','mesure','size','مقاس','المقاس','قياس','قياسات','taille','9yas'],
-    delivery:['livraison','livrer','livrez','délai','delai','expédition','delivery','توصيل','التوصيل','توصّل','ليڥريزون','livraison','livrison','tawsil','livry'],
-    payment:['paiement','payer','paiement à la livraison','cash','payment','الدفع','نخلص','خلاص','تخلص','كيفاش نخلص','nkhaless','nkhalas','khalass'],
-    contact:['contact','téléphone','telephone','numéro','numero','instagram','appeler','واتساب','رقم','اتصل','نتصل','نكلّم','noumrou','numrou','contacter'],
-    stock:['stock','disponible','disponibilité','dispo','reste','المخزون','متوفر','موجود','ستوك','stock','mawjoud'],
-    order:['commande','commander','panier','acheter','achat','order','طلب','نطلب','كوموند','commandi','panier','ncommandi','nekhou']
+  const NLP=window.SportifanoChatNLP;
+  if(!NLP){console.error('Sportifano chatbot language module missing');return;}
+  const tidy=NLP.norm;
+  const language=(text)=>NLP.language(text,state.lang);
+  // All replies are templates grounded in the live store, not a generative AI model.
+  const extras={
+    fr:{
+      greeting:'Bonjour 👋 Comment allez-vous ? Je suis là pour vous aider. Vous cherchez des crampons, des demi-crampons ou autre chose ?',
+      orderLogin:'Pour protéger vos données, connectez-vous à votre compte Sportifano afin de consulter vos commandes. Ne partagez pas votre mot de passe ici.',
+      orderEmpty:'Aucune commande retrouvée dans votre compte pour le moment.',
+      orderFailed:'Impossible de consulter vos commandes actuellement. Réessayez dans votre espace client.',
+      orderHeader:'Voici les dernières commandes associées à votre compte :',
+      loginButton:'Se connecter / Mon compte',
+      detailsHeader:'Voici les détails du produit :',
+      sizesLabel:'Tailles',colorsLabel:'Couleurs',descriptionLabel:'Description',priceLabel:'Prix',
+      unknownSize:'À confirmer sur la fiche produit',unknownDetails:'Consultez la fiche produit pour plus d’informations.',
+      orderStatus:{pending:'En attente de confirmation',confirmed:'Confirmée',shipped:'Expédiée',delivered:'Livrée',cancelled:'Annulée'}
+    },
+    ar:{
+      greeting:'مرحباً بكم 👋 كيف يمكنني مساعدتكم؟ هل تبحثون عن أحذية كرة القدم أو نوع آخر من المنتجات؟',
+      orderLogin:'لحماية بياناتك، يرجى الدخول إلى حسابك في سبورتيفانو لمتابعة طلباتك. لا تكتب كلمة السر هنا.',
+      orderEmpty:'لا توجد طلبات مرتبطة بحسابك حالياً.',
+      orderFailed:'تعذّر عرض الطلبات الآن. يرجى المحاولة من حسابك.',
+      orderHeader:'هذه آخر الطلبات المسجّلة في حسابك:',
+      loginButton:'الدخول إلى حسابي',
+      detailsHeader:'إليك معلومات المنتج:',
+      sizesLabel:'المقاسات',colorsLabel:'الألوان',descriptionLabel:'الوصف',priceLabel:'السعر',
+      unknownSize:'يجب التأكد من صفحة المنتج',unknownDetails:'يمكنك زيارة صفحة المنتج لمزيد من التفاصيل.',
+      orderStatus:{pending:'في انتظار التأكيد',confirmed:'تم التأكيد',shipped:'قيد التوصيل',delivered:'تم التسليم',cancelled:'ملغى'}
+    },
+    tn:{
+      greeting:'عسلامة خويا 😄 لاباس الحمد لله! إنتي لباس؟ مرحبا بيك في Sportifano. تحبّ ديمي كرامبون، كرامبون، سبادري ولا حاجة أخرى؟',
+      orderLogin:'أكيد نعاونك في الكوموند متاعك 😊 أما يلزم تدخل لحسابك Sportifano الأول باش ما نوريش طلباتك لحدّ آخر. ما تبعثش الموط دو باس في الشات.',
+      orderEmpty:'ما لقيتش كوموندات في الحساب متاعك توّة. كان عملت كوموند بحساب آخر، ادخل بيه.',
+      orderFailed:'ما نجمتش نجيبلك الكوموندات توّة. جرّب من espace client متاعك.',
+      orderHeader:'هاو آخر الكوموندات متاعك:',
+      loginButton:'ادخل لحسابي',
+      detailsHeader:'هاو الديتاي متاع البرودوي:',
+      sizesLabel:'المقاسات',colorsLabel:'الألوان',descriptionLabel:'التفاصيل',priceLabel:'السوم',
+      unknownSize:'المقاس يلزم يتأكد من صفحة البرودوي',unknownDetails:'تلقى التفاصيل الكاملة في صفحة البرودوي.',
+      orderStatus:{pending:'تستنّى التأكيد',confirmed:'تأكّدت',shipped:'في طريقها ليك',delivered:'تسلّمت',cancelled:'تفسخت'}
+    }
   };
-  const tidy = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}\s.]/gu,' ').replace(/\s+/g,' ').trim();
-  const has = (text, group) => dictionary[group].some(word => tidy(text).includes(tidy(word)));
-  function language(input) {
-    const s = String(input || '');
-    if (/[؀-ۿ]/u.test(s)) return /(?:شنوه|شنوة|قداش|برودوي|سبادري|نحب|تنج|كوموند|عسلامة|توّه|توّة|ليڥريزون|باهي)/u.test(s) ? 'tn' : 'ar';
-    if (/\b(?:chnowa|chneya|nheb|9adech|9addech|9adach|kifech|fama|tawa|sbedri|sbabri|barcha|bech|livrison|noumrou|khalas|najem)\b/i.test(s)) return 'tn';
-    return 'fr';
-  }
+  for(const code of ['fr','ar','tn'])Object.assign(i18n[code],extras[code]);
   const tr = () => i18n[state.lang];
   function node(tag, cls, value) { const el = document.createElement(tag); if(cls)el.className = cls; if(value !== undefined)el.textContent=value; return el; }
   const button = (text, click, cls='') => { const el = node('button',cls,text); el.type='button'; if(typeof click==='function')el.addEventListener('click',click); return el; };
@@ -90,64 +112,94 @@
   function showSuggestions(){suggestions.replaceChildren();tr().start.forEach(question=>suggestions.append(button(question,()=>send(question),'sf-chat-chip')));}
   function setLanguage(code){state.lang=code;panel.dir=code==='fr'?'ltr':'rtl';input.placeholder=tr().prompt;submit.setAttribute('aria-label',tr().send);voice.title=tr().voice;headerClose.setAttribute('aria-label',tr().close);privacy.textContent=tr().privacy;heading.lastChild.textContent=tr().online;root.querySelectorAll('.sf-chat-lang').forEach(el=>el.classList.toggle('active',el.dataset.lang===code));showSuggestions();try{sessionStorage.setItem('sf_chat_lang',code);}catch{}}
   function toggle(open){state.open=open;panel.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(!state.history.length)addMessage(tr().hello);input.focus();}}
-  function reset(){state.history=[];messages.replaceChildren();addMessage(tr().hello);showSuggestions();}
-  function rank(text, category) {
-    let q=tidy(text);const budget=q.match(/(?:moins de|inferieur|under|اقل من|تحت|اقل|moins|<|budget|بودجي|maximum|max)\s*(\d{2,5})/i);
-    const max=budget?Number(budget[1]):null;
-    const requestedSize=q.match(/(?:taille|pointure|size|مقاس|قياس|9yas)\s*(\d{2,3}|xs|s|m|l|xl|xxl)\b/i);
-    let words=q.split(' ').filter(w=>w.length>2&&!['prix','produit','collection','chouf','nheb','barcha','pour','moins','avec','article','sportifano','cherche','show','اريد','نحب','شوف'].includes(w));
-    const matches=state.catalog.filter(p=>{
-      if(p.active===false||!p.name)return false;
-      if(category && !tidy(p.category).includes(tidy(category)))return false;
-      if(max!==null && (!priceValid(p)||Number(p.price)>max))return false;
-      if(requestedSize && !String(Array.isArray(p.sizes)?p.sizes.join(' '):p.sizes||'').toLowerCase().split(/[\s,]+/).includes(requestedSize[1].toLowerCase()))return false;
-      return true;
-    }).map(p=>{
-      const hay=tidy([p.name,p.category,p.description,p.colors?.join?.(' '),p.sizes?.join?.(' ')].join(' '));
-      const score=words.reduce((acc,w)=>acc+(hay.includes(w)?3:0),0)+(hay.includes(q)?7:0);
-      return {p,score};
-    }).sort((a,b)=>b.score-a.score);
-    const qualified=matches.some(x=>x.score>0);
-    return (qualified?matches.filter(x=>x.score>0):matches).slice(0,4).map(x=>x.p);
+  function reset(){state.history=[];state.lastProducts=[];messages.replaceChildren();addMessage(tr().hello);showSuggestions();}
+  const stringList=value=>Array.isArray(value)?value.map(v=>String(v)).join(', '):String(value||'');
+  function detailOf(p){
+    const t=tr();
+    const chunks=[t.detailsHeader,p.name];
+    if(NLP.validPrice(p))chunks.push(t.priceLabel+': '+formatPrice(p.price));
+    if(p.category)chunks.push(String(p.category));
+    if(p.description)chunks.push(t.descriptionLabel+': '+String(p.description).slice(0,450));
+    chunks.push(t.sizesLabel+': '+(stringList(p.sizes)||t.unknownSize));
+    if(stringList(p.colors))chunks.push(t.colorsLabel+': '+stringList(p.colors));
+    chunks.push(stock(p));
+    return chunks.join('\n');
   }
-  function matchCategory(text) {
-    if(has(text,'shoe'))return 'Chaussures';
-    if(has(text,'man'))return 'Homme';
-    if(has(text,'woman'))return 'Femme';
-    if(has(text,'accessory'))return 'Accessoires';
-    return null;
+  const authButton=()=>{const b=document.querySelector('#accountBtn');if(b)b.click();else window.location.assign('/');};
+  async function myOrders(text){
+    const t=tr();
+    try {
+      const {auth,db}=await import('/firebase.js');
+      if(!auth.currentUser)return {text:t.orderLogin,signIn:true};
+      const uid=auth.currentUser.uid;
+      const {getDocs,query,collection,where}=await import('/database-api.js');
+      // RTDB rules require auth.uid AND a userId-filtered query. Never read all orders.
+      const snap=await Promise.race([
+        getDocs(query(collection(db,'orders'),where('userId','==',uid))),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),8000))
+      ]);
+      const orders=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(o=>o.userId===uid)
+        .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+      const wanted=String(text||'').match(/#([a-z0-9_-]{6,})/i)?.[1];
+      const selected=wanted?orders.filter(o=>o.id.startsWith(wanted)):orders.slice(0,4);
+      if(!selected.length)return {text:t.orderEmpty};
+      const lines=selected.map(o=>{
+        const status=t.orderStatus[o.status]||t.orderStatus.pending;
+        const items=(Array.isArray(o.items)?o.items:[]).slice(0,8).map(item=>{
+          const title=String(item.name||'Article').slice(0,65);
+          const qty=Number.isFinite(Number(item.quantity))?Number(item.quantity):1;
+          return '• '+title+' × '+qty+(item.size?' ('+String(item.size).slice(0,16)+')':'');
+        }).join('\n');
+        const sum=Number.isFinite(Number(o.total))?formatPrice(o.total):'—';
+        return '#'+o.id.slice(0,8)+' · '+status+'\n'+sum+(items?'\n'+items:'');
+      });
+      return {text:t.orderHeader+'\n\n'+lines.join('\n\n')};
+    }catch(e){console.warn('Assistant order lookup failed',e?.code||e?.name||'error');return {text:t.orderFailed,signIn:true};}
   }
-  function answer(text){
-    const t=tr();const category=matchCategory(text);
-    const possibleProduct=state.catalog.find(p=>tidy(text).includes(tidy(p.name))&&tidy(p.name).length>3);
-    if(has(text,'delivery'))return {text:t.delivery,link:['/livraison/',t.shippingLink]};
-    if(has(text,'payment'))return {text:t.payment,link:['/livraison/',t.shippingLink]};
-    if(has(text,'contact'))return {text:t.contact,link:['/contact/',t.contactLink]};
-    if(has(text,'order'))return {text:t.order,link:['/#catalogue',t.catalogue]};
-    if(has(text,'stock')&&!category&&!possibleProduct)return {text:t.stock};
-    if(has(text,'size')&&!category&&!possibleProduct)return {text:t.size};
-    if(has(text,'price')&&!category&&!possibleProduct&&!/\d{2,5}/.test(text))return {text:t.price};
-    const wantsProducts=category||possibleProduct||has(text,'product')||has(text,'price')||has(text,'size')||has(text,'stock')||/\b\d{2,5}\s*(?:dt|tnd|dinars?)\b/i.test(text);
-    if(wantsProducts) {
+  async function answer(text){
+    const t=tr(),intent=NLP.intent(text);
+    if(intent==='greeting')return {text:t.greeting};
+    if(intent==='orderStatus')return myOrders(text);
+    if(intent==='howOrder')return {text:t.order,link:['/#catalogue',t.catalogue]};
+    if(intent==='delivery')return {text:t.delivery,link:['/livraison/',t.shippingLink]};
+    if(intent==='payment')return {text:t.payment,link:['/livraison/',t.shippingLink]};
+    if(intent==='contact')return {text:t.contact,link:['/contact/',t.contactLink]};
+    const normalized=tidy(text);
+    const wantsDetails=NLP.has(text,NLP.lex.details);
+    const possibleProduct=state.catalog.find(p=>p.name&&normalized.includes(tidy(p.name))&&tidy(p.name).length>3);
+    const type=NLP.typeOf(text);
+    const productQuery=intent==='products'||!!possibleProduct;
+    if(productQuery){
       if(!state.loaded)return {text:t.empty,link:['/#catalogue',t.catalogue]};
-      let products=possibleProduct?[possibleProduct]:rank(text,category);
+      // A short follow-up ("details", "prix", "taille") keeps the last product context.
+      const contextual=!type&&!possibleProduct&&state.lastProducts?.length&&
+        (wantsDetails||NLP.has(text,NLP.lex.size)||NLP.has(text,NLP.lex.stock))&&
+        !NLP.has(text,NLP.lex.products);
+      const products=possibleProduct?[possibleProduct]:contextual?state.lastProducts.slice(0,1):NLP.search(text,state.catalog,{limit:4});
       if(!products.length)return {text:t.noProducts,link:['/#catalogue',t.catalogue]};
-      const introduction=has(text,'size')?t.size:has(text,'stock')?t.stock:t.products;
-      return {text:introduction,products,link:['/#catalogue',t.catalogue]};
+      state.lastProducts=products;
+      if(wantsDetails||contextual||products.length===1){
+        return {text:detailOf(products[0]),products:products.slice(0,4),link:['/#catalogue',t.catalogue]};
+      }
+      if(NLP.has(text,NLP.lex.price)&&!type&&!NLP.budgetOf(text))return {text:t.price,products,link:['/#catalogue',t.catalogue]};
+      return {text:t.products,products,link:['/#catalogue',t.catalogue]};
     }
     return {text:t.unknown,link:['/#catalogue',t.catalogue]};
   }
-  function send(value){
+  async function send(value){
     const text=String(value||'').trim().slice(0,280);
     if(!text)return;
     input.value='';
-    const detected=language(text);
-    // Automatically follow the language of the visitor's message, with manual selection available.
-    setLanguage(detected);
+    setLanguage(language(text));
     addMessage(text,'user');
-    const response=answer(text);
-    addMessage(response.text,'bot',response.products||[]);
-    if(response.link){const last=messages.lastChild.querySelector('.sf-chat-msg-content');last.append(link(response.link[1],response.link[0],'sf-chat-action'));}
+    try{
+      const response=await answer(text);
+      addMessage(response.text,'bot',response.products||[]);
+      const last=messages.lastChild?.querySelector('.sf-chat-msg-content');
+      if(response.link&&last)last.append(link(response.link[1],response.link[0],'sf-chat-action'));
+      if(response.signIn&&last)last.append(button(tr().loginButton,authButton,'sf-chat-login sf-chat-action'));
+    }catch(e){console.error('Sportifano assistant error',e);addMessage(tr().unknown);}
     suggestions.replaceChildren();
   }
   function startVoice(){
