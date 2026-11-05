@@ -12,7 +12,7 @@
   const terms=value=>norm(value).split(' ').filter(Boolean);
   const has=(value,aliases)=>{const t=' '+norm(value)+' ';return aliases.some(a=>t.includes(' '+norm(a)+' '));};
   const lex={
-    demi:['demi crampon','demi crapon','demu crampon','demu crapon','dmi crampon','dmi crapon','demy crampon','demy crapon','demicrampon','demicrapon','demi crampan','dmi crampan','demi krampon','demu krapon','dmu crampon','demi','demu','dmi','demy','tf football','football turf','terrain synthetique','turf','astroturf','astro turf','ديمي كرامبون','ديمي كرابون','دمي كرابون','ديمو كرامبون','ديمي','دمي','نصف كرامبون','صباط ديمي'],
+    demi:['demi crampon','demi crapon','demu crampon','demu crapon','dmi crampon','dmi crapon','demy crampon','demy crapon','demicrampon','demicrapon','demi crampan','dmi crampan','demi krampon','demu krapon','dmu crampon','demi','demu','demo','dmi','demy','tf football','football turf','terrain synthetique','turf','astroturf','astro turf','ديمي كرامبون','ديمي كرابون','دمي كرابون','ديمو كرامبون','ديمي','دمي','نصف كرامبون','صباط ديمي'],
     crampon:['crampon','crampons','crapon','crapons','crampan','crampans','crampoon','krampon','krampons','cramponn','كرامبون','كرابون','كراپون','كرامبونات','صباط كورة','سباط كورة','sbat koura','sabbat koura','sabat koura','football boots','football cleats','chaussures de foot','chaussure de foot'],
     running:['running','ranning','jogging','chaussures de course','course a pied','سبادري جري','سبادري للجري'],
     sneaker:['sneaker','sneakers','basket','baskets','sbedri','sbedry','sbabri','sabadr','سبادري','سبادريات'],
@@ -42,7 +42,7 @@
     howOrder:['comment commander','comment acheter','how to order','كيفاش نطلب','كيفاش نكوموندي','kifech ncommandi','kifech nechri','kifech na3mel commande']
   };
   const types=['demi','crampon','running','sneaker','shoe','tracksuit','tshirt','jersey','shorts','bag','ball','socks','gloves','accessories'];
-  const tunisianWords=['slm','slem','salam','aslema','3aslema','khouya','khoya','khuya','5ouya','5oya','chneya','chnowa','chnoua','chnia','chniya','nheb','n7eb','9adech','9adach','9addech','kifech','fama','tawa','sbedri','sbabri','barcha','bech','livrison','noumrou','khalas','najem','3andkom','3andek','3andkoum','mta3i','mte3i','winek','win','wen','labes','labess','demu','crapon','comondi','komondi','woslet','mrigel'];
+  const tunisianWords=['slm','slem','salam','aslema','3aslema','khouya','khoya','khuya','5ouya','5oya','chneya','chnowa','chnoua','chnia','chniya','nheb','n7eb','9adech','9adach','9addech','kifech','fama','tawa','sbedri','sbabri','barcha','bech','livrison','noumrou','khalas','najem','3andkom','3andek','3andkoum','mta3i','mte3i','winek','win','wen','labes','labess','demu','demo','crapon','comondi','komondi','woslet','mrigel'];
   const tunisianArabic=['عسلامه','شنوه','شنوة','شنيا','شنية','قداش','بقداش','خويا','خويه','نحب','تنجم','برودوي','سبادري','صباط','سباط','كوموند','ليڥريزون','باهي','لاباس','توه','توة','خاطر','فما','برشا','عايشك','نخلص','نعاونك','وين','متاعي','طلبيتي','كرابون','كرامبون'];
   const frenchWords=['bonjour','bonsoir','merci','je cherche','vous avez','je voudrais','je veux','combien','livraison','commande','taille','pointure','chaussures','prix','pouvez vous','est ce que','comment','s il vous plait','crampons'];
   function language(value,previous='tn'){
@@ -86,7 +86,7 @@
   const validPrice=p=>p&&(typeof p.price==='number'||typeof p.price==='string')&&String(p.price).trim()!==''&&Number.isFinite(Number(p.price))&&Number(p.price)>=0;
   const productHasType=(p,type)=>{
     const s=productText(p);
-    if(type==='demi')return has(s,lex.demi.filter(a=>a!=='demi'&&a!=='demu'&&a!=='dmi'&&a!=='demy'))||has(s,['demi','dmi','demu','tf','turf']);
+    if(type==='demi')return has(s,lex.demi.filter(a=>a!=='demi'&&a!=='demu'&&a!=='demo'&&a!=='dmi'&&a!=='demy'))||has(s,['demi','dmi','demu','demo','tf','turf']);
     if(type==='crampon')return has(s,lex.crampon)||has(s,lex.demi);
     if(type==='sneaker')return has(s,lex.sneaker)||has(s,['basket','sneaker','espadrille','سبادري']);
     if(type==='shoe')return has(s,lex.shoe)||has(s,lex.crampon)||has(s,lex.demi)||has(s,lex.running)||has(s,lex.sneaker);
