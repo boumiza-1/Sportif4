@@ -36,7 +36,7 @@
   }
   const tr = () => i18n[state.lang];
   function node(tag, cls, value) { const el = document.createElement(tag); if(cls)el.className = cls; if(value !== undefined)el.textContent=value; return el; }
-  const button = (text, click, cls='') => { const el = node('button',cls,text); el.type='button'; el.addEventListener('click',click); return el; };
+  const button = (text, click, cls='') => { const el = node('button',cls,text); el.type='button'; if(typeof click==='function')el.addEventListener('click',click); return el; };
   const link = (text, href, cls) => { const el=node('a',cls,text); el.href=href; return el; };
   function formatPrice(n){return Number(n).toLocaleString('fr-TN',{maximumFractionDigits:3})+' DT';}
   function productUrl(p){if(!p.id)return '/#catalogue'; return '/produits/'+encodeURIComponent(String(p.id))+'/';}
