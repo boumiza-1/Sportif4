@@ -1,0 +1,52 @@
+/* SPORTIFANO ASSISTANT — isolated from the storefront theme. */
+#sf-assistant{font-family:'DM Sans',Arial,sans-serif;position:fixed;right:24px;bottom:22px;z-index:1100;color:#171a18;box-sizing:border-box}
+#sf-assistant *{box-sizing:border-box}
+#sf-assistant button,#sf-assistant input{font-family:inherit}
+#sf-assistant .sf-chat-trigger{display:flex;align-items:center;gap:11px;border:1px solid rgba(255,255,255,.2);background:#171a18;color:#fff;border-radius:100px;padding:9px 18px 9px 9px;box-shadow:0 14px 38px #0004;font-size:13px;font-weight:800;cursor:pointer;transition:transform .2s,box-shadow .2s}
+#sf-assistant .sf-chat-trigger:hover{transform:translateY(-3px);box-shadow:0 18px 42px #0005}
+#sf-assistant .sf-chat-trigger-symbol{background:#d6fa35;color:#171a18;width:39px;height:39px;display:grid;place-items:center;border-radius:50%;font-size:24px}
+#sf-assistant .sf-chat-panel{width:min(390px,calc(100vw - 24px));height:min(630px,calc(100dvh - 105px));background:#fff;border-radius:22px;box-shadow:0 23px 75px #0005;border:1px solid #e6e8e4;display:flex;flex-direction:column;overflow:hidden;margin-bottom:12px;animation:sfAppear .2s ease}
+#sf-assistant .sf-chat-panel[hidden]{display:none}
+@keyframes sfAppear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+#sf-assistant .sf-chat-header{display:flex;align-items:center;gap:10px;padding:15px 16px;background:#191c1a;color:#fff}
+#sf-assistant .sf-chat-logo{display:grid;place-items:center;background:#d6fa35;color:#171a18;border-radius:13px;width:42px;height:42px;font-family:Outfit,Arial,sans-serif;font-size:25px;font-weight:900}
+#sf-assistant .sf-chat-heading{flex:1;display:flex;flex-direction:column;gap:3px}
+#sf-assistant .sf-chat-heading strong{font-family:Outfit,Arial,sans-serif;letter-spacing:1px;font-size:16px}
+#sf-assistant .sf-chat-heading small{font-size:11px;color:#d6fa35}
+#sf-assistant .sf-chat-close{border:0;background:#ffffff17;color:#fff;border-radius:50%;font-size:26px;width:34px;height:34px;cursor:pointer}
+#sf-assistant .sf-chat-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:9px 12px;border-bottom:1px solid #edf0e8;background:#fafbf7}
+#sf-assistant .sf-chat-languages{display:flex;gap:4px}
+#sf-assistant .sf-chat-lang{border:1px solid transparent;background:transparent;border-radius:100px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;color:#50574e}
+#sf-assistant .sf-chat-lang.active{background:#d6fa35;color:#171a18;border-color:#c9e939}
+#sf-assistant .sf-chat-reset{border:0;background:transparent;font-size:23px;cursor:pointer;color:#555}
+#sf-assistant .sf-chat-messages{flex:1;min-height:0;overflow-y:auto;padding:18px 13px 12px;background:linear-gradient(180deg,#fff,#f8faf7);display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain}
+#sf-assistant .sf-chat-msg{display:flex;gap:8px;align-items:flex-end;max-width:100%;direction:ltr}
+#sf-assistant .sf-chat-msg.user{justify-content:flex-end}
+#sf-assistant .sf-chat-avatar{flex:0 0 25px;width:25px;height:25px;display:grid;place-items:center;background:#171a18;color:#d6fa35;border-radius:9px;font-weight:900;font-size:15px}
+#sf-assistant .sf-chat-msg-content{max-width:calc(100% - 35px);min-width:0}
+#sf-assistant .sf-chat-msg.user .sf-chat-msg-content{max-width:88%}
+#sf-assistant .sf-chat-bubble{background:#fff;border:1px solid #e8ebe3;border-radius:15px 15px 15px 4px;padding:11px 13px;line-height:1.6;font-size:13px;white-space:pre-line;overflow-wrap:anywhere}
+#sf-assistant [dir=rtl] .sf-chat-bubble{text-align:right;direction:rtl}
+#sf-assistant .sf-chat-msg.user .sf-chat-bubble{background:#d6fa35;border-color:#d6fa35;border-radius:15px 15px 4px 15px}
+#sf-assistant .sf-chat-cards{display:flex;gap:8px;overflow-x:auto;padding:9px 1px 3px;max-width:320px;scroll-snap-type:x mandatory}
+#sf-assistant .sf-chat-product{min-width:145px;max-width:145px;display:flex;flex-direction:column;background:#fff;border:1px solid #e5e9df;border-radius:13px;overflow:hidden;text-decoration:none;color:#171a18;scroll-snap-align:start}
+#sf-assistant .sf-chat-product-image{height:107px;background:#f1f3f0;display:grid;place-items:center;font:900 12px Outfit,Arial;color:#758069;overflow:hidden}
+#sf-assistant .sf-chat-product-image img{width:100%;height:100%;object-fit:cover}
+#sf-assistant .sf-chat-product-body{padding:9px;display:flex;flex-direction:column;gap:5px}
+#sf-assistant .sf-chat-product-body strong{font-size:11px;line-height:1.3;min-height:28px}
+#sf-assistant .sf-chat-product-body small{font-size:10px;color:#687064;line-height:1.35}
+#sf-assistant .sf-chat-product-price{font-size:12px;font-weight:900}
+#sf-assistant .sf-chat-action{display:inline-block;border:1px solid #b5cc6b;border-radius:100px;padding:8px 12px;margin-top:9px;color:#272c20;text-decoration:none;font-size:11px;font-weight:800;background:#f4ffd5}
+#sf-assistant .sf-chat-suggestions{display:flex;gap:6px;overflow:auto;padding:9px 11px;border-top:1px solid #f1f3ee;background:#fff;scrollbar-width:thin}
+#sf-assistant .sf-chat-chip{white-space:nowrap;border:1px solid #e2e6dd;background:#fff;border-radius:20px;padding:8px 10px;font-size:11px;font-weight:700;color:#30382b;cursor:pointer}
+#sf-assistant .sf-chat-chip:hover{background:#edf6d6}
+#sf-assistant .sf-chat-form{display:flex;gap:7px;align-items:center;padding:10px 11px 8px;border-top:1px solid #e9ece6;background:#fff}
+#sf-assistant .sf-chat-input{min-width:0;flex:1;border:1px solid #e4e8de;background:#f7f8f5;border-radius:11px;padding:12px 10px;font-size:12px;color:#171a18;outline:0}
+#sf-assistant .sf-chat-input:focus{border-color:#a3c42e;background:#fff}
+#sf-assistant .sf-chat-voice{background:#f2f4ed;border:0;border-radius:11px;min-width:37px;height:39px;cursor:pointer}
+#sf-assistant .sf-chat-voice.listening{background:#ffe4e4}
+#sf-assistant .sf-chat-submit{background:#d6fa35;color:#171a18;border:0;border-radius:11px;min-width:39px;height:39px;font-size:17px;font-weight:900;cursor:pointer}
+#sf-assistant .sf-chat-privacy{padding:0 12px 10px;background:#fff;text-align:center;font-size:9px;color:#8a9085}
+#sf-assistant button:focus-visible,#sf-assistant a:focus-visible{outline:2px solid #7d9f00;outline-offset:2px}
+@media(max-width:520px){#sf-assistant{right:12px;bottom:12px}#sf-assistant .sf-chat-panel{width:calc(100vw - 24px);height:min(630px,calc(100dvh - 90px))}#sf-assistant .sf-chat-trigger{padding:8px;border-radius:50%}#sf-assistant .sf-chat-trigger-text{display:none}#sf-assistant .sf-chat-trigger-symbol{width:42px;height:42px}}
+@media(prefers-reduced-motion:reduce){#sf-assistant *{animation:none!important;transition:none!important}}
