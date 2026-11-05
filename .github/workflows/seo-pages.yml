@@ -33,6 +33,7 @@ jobs:
           node tests/seo-build.test.mjs
           node tests/seo-live-check.test.mjs
           node --test tests/chatbot-nlp.test.cjs
+          node --test tests/product-links.test.mjs
       - name: Generate pages from the public Firebase catalog
         run: node scripts/build-seo.mjs --out dist
       - name: Summarize generated public pages
