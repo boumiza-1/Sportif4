@@ -112,7 +112,7 @@
   function showSuggestions(){suggestions.replaceChildren();tr().start.forEach(question=>suggestions.append(button(question,()=>send(question),'sf-chat-chip')));}
   function setLanguage(code){state.lang=code;panel.dir=code==='fr'?'ltr':'rtl';input.placeholder=tr().prompt;submit.setAttribute('aria-label',tr().send);voice.title=tr().voice;headerClose.setAttribute('aria-label',tr().close);privacy.textContent=tr().privacy;heading.lastChild.textContent=tr().online;root.querySelectorAll('.sf-chat-lang').forEach(el=>el.classList.toggle('active',el.dataset.lang===code));showSuggestions();try{sessionStorage.setItem('sf_chat_lang',code);}catch{}}
   function toggle(open){state.open=open;panel.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(!state.history.length)addMessage(tr().hello);input.focus();}}
-  function reset(){state.history=[];state.lastProducts=[];messages.replaceChildren();addMessage(tr().hello);showSuggestions();}
+  function reset(){state.cartDraft=null;state.history=[];state.lastProducts=[];messages.replaceChildren();addMessage(tr().hello);showSuggestions();}
   const stringList=value=>Array.isArray(value)?value.map(v=>String(v)).join(', '):String(value||'');
   function detailOf(p){
     const t=tr();
@@ -157,6 +157,116 @@
       return {text:t.orderHeader+'\n\n'+lines.join('\n\n')};
     }catch(e){console.warn('Assistant order lookup failed',e?.code||e?.name||'error');return {text:t.orderFailed,signIn:true};}
   }
+  // A cart draft is only a proposal. It never mutates the cart until explicit confirmation.
+  const cartWords={
+    tn:{choose:'أي مودال تقصد؟ اختار البرودوي اللي تحب عليه:',size:'شنوّة القياس اللي تحب عليه؟',color:'شنوّة اللون اللي تختار؟',confirm:'تأكّدلي: نزيدلك البرودوي هذا في البانيي؟',yes:'إي، زيد للبانيي',cancel:'لا، بلاش',added:'مريڨل! زدتهولك في البانيي ✅',open:'شوف البانيي',unavailable:'سامحني، البرودوي موش متوفّر توّة، ولا الستوك ما عادش يكفي.',noLive:'باش نزيدهولك في البانيي، يلزم الاتصال بالستوك المباشر يكون متاح. جرّب من بعد.',none:'ما لقيتش البرودوي هذا في الكاتالوغ، جرّب اسم آخر.',badSize:'المقاس المطلوب موش موجود للمودال هذا. اختار من المقاسات المتاحة.',badColor:'اللون المطلوب موش موجود للمودال هذا. اختار من الألوان المتاحة.',quantity:'الكمية',sizeLabel:'المقاس',colorLabel:'اللون',pending:'نستنّى تأكيدك قبل ما نزيد المنتج.',chooseFirst:'اختار المنتج أولًا.',noSize:'ما عندناش معلومة مؤكدة على المقاس هذا. تثبّت من صفحة المنتج.'},
+    fr:{choose:'Quel modèle voulez-vous ? Choisissez un produit :',size:'Quelle taille souhaitez-vous ?',color:'Quelle couleur préférez-vous ?',confirm:'Confirmez-vous cet ajout au panier ?',yes:'Oui, ajouter au panier',cancel:'Annuler',added:'Votre article a été ajouté au panier ✅',open:'Voir mon panier',unavailable:'Cet article ou la quantité demandée n’est plus disponible.',noLive:'Le stock en direct est indisponible. Je ne peux pas ajouter au panier pour le moment.',none:'Je ne trouve pas cet article dans le catalogue.',badSize:'Cette taille n’est pas disponible. Choisissez une taille proposée.',badColor:'Cette couleur n’est pas disponible. Choisissez une couleur proposée.',quantity:'Quantité',sizeLabel:'Taille',colorLabel:'Couleur',pending:'Je demande votre confirmation avant de modifier le panier.',chooseFirst:'Choisissez d’abord un produit.',noSize:'La taille ne peut pas être vérifiée sur cet article.'},
+    ar:{choose:'أي موديل تريد؟ اختر المنتج:',size:'ما المقاس المطلوب؟',color:'ما اللون الذي تريده؟',confirm:'هل تؤكد إضافة هذا المنتج إلى السلة؟',yes:'نعم، أضف للسلة',cancel:'إلغاء',added:'تمت إضافة المنتج إلى السلة ✅',open:'عرض السلة',unavailable:'المنتج أو الكمية المطلوبة غير متوفرة.',noLive:'المخزون المباشر غير متاح حالياً، لا يمكنني الإضافة للسلة.',none:'لم أجد المنتج المطلوب في المجموعة.',badSize:'هذا المقاس غير متوفر. اختر مقاساً متاحاً.',badColor:'هذا اللون غير متوفر. اختر لوناً متاحاً.',quantity:'الكمية',sizeLabel:'المقاس',colorLabel:'اللون',pending:'لن أعدّل السلة قبل موافقتك.',chooseFirst:'يرجى اختيار المنتج أولاً.',noSize:'لا يمكن التأكد من المقاس لهذا المنتج.'}
+  };
+  const cw=()=>cartWords[state.lang];
+  const options=value=>Array.isArray(value)?value.map(x=>String(x).trim()).filter(Boolean):[];
+  function cartControls(text,buttons){
+    addMessage(text,'bot');
+    const host=messages.lastChild?.querySelector('.sf-chat-msg-content');
+    if(!host)return;
+    const group=node('div','sf-chat-cart-controls');
+    buttons.forEach(([label,action])=>group.append(button(label,action,'sf-chat-chip sf-chat-option')));
+    host.append(group);
+    messages.scrollTop=messages.scrollHeight;
+  }
+  function cancelCart(){
+    state.cartDraft=null;
+    cartControls(cw().cancel,[]);
+  }
+  function cartStep(){
+    const d=state.cartDraft;
+    if(!d)return;
+    if(!d.product){
+      cartControls(cw().choose,d.candidates.map(p=>[p.name+(NLP.validPrice(p)?' · '+formatPrice(p.price):''),()=>{if(state.cartDraft!==d)return;d.product=p;cartStep();}]));
+      return;
+    }
+    const p=d.product,sizes=options(p.sizes),colors=options(p.colors);
+    if(!NLP.validPrice(p)||!Number.isSafeInteger(Number(p.stock))||Number(p.stock)<1){
+      state.cartDraft=null;addMessage(cw().unavailable,'bot');return;
+    }
+    if(sizes.length){
+      const match=sizes.find(x=>NLP.norm(x)===NLP.norm(d.size));
+      if(!match){
+        const initial=d.size?cw().badSize:cw().size;
+        d.size='';
+        cartControls(initial,sizes.map(x=>[x,()=>{if(state.cartDraft!==d)return;d.size=x;cartStep();}]));
+        return;
+      }
+      d.size=match;
+    }else if(d.size){state.cartDraft=null;addMessage(cw().noSize,'bot');return;}
+    if(colors.length){
+      const match=NLP.matchColor(d.color,colors);
+      if(!match){
+        if(!d.color&&colors.length===1)d.color=colors[0];
+        else {
+          const initial=d.color?cw().badColor:cw().color;
+          d.color='';
+          cartControls(initial,colors.map(x=>[x,()=>{if(state.cartDraft!==d)return;d.color=x;cartStep();}]));
+          return;
+        }
+      }else d.color=match;
+    }else if(d.color){state.cartDraft=null;addMessage(cw().badColor,'bot');return;}
+    const summary=cw().confirm+'\n'+p.name+'\n'+(NLP.validPrice(p)?formatPrice(p.price*d.quantity):'')+
+      (d.size?'\n'+cw().sizeLabel+': '+d.size:'')+(d.color?'\n'+cw().colorLabel+': '+d.color:'')+
+      '\n'+cw().quantity+': '+d.quantity;
+    cartControls(summary,[
+      [cw().yes,()=>confirmCart(d)],
+      [cw().cancel,()=>{if(state.cartDraft===d)cancelCart();}]
+    ]);
+  }
+  function confirmCart(d){
+    if(state.cartDraft!==d||d.processing)return;
+    d.processing=true;
+    const api=window.SportifanoCart;
+    if(!api?.isReady?.()){state.cartDraft=null;addMessage(cw().noLive,'bot');return;}
+    const result=api.addItem({productId:d.product.id,size:d.size,color:d.color,quantity:d.quantity});
+    state.cartDraft=null;
+    if(!result.ok){
+      addMessage(cw().unavailable,'bot');
+      return;
+    }
+    cartControls(cw().added+' '+result.product.name+' × '+result.quantity,[
+      [cw().open,()=>api.open()]
+    ]);
+  }
+  function startCartRequest(text){
+    const parsed=NLP.cartRequest(text);
+    if(!parsed)return false;
+    if(!state.loaded){addMessage(cw().noLive,'bot');return true;}
+    const matched=NLP.search(text,state.catalog,{limit:6});
+    const isReferenceOnly=!NLP.typeOf(text)&&!NLP.has(text,NLP.lex.products)&&!NLP.has(text,NLP.lex.shoe||[]);
+    // Keep previously selected product for short follow-ups such as "hottli taille 42".
+    const fromContext=(!matched.length||isReferenceOnly)&&state.lastProducts?.length===1;
+    const candidates=fromContext?[state.lastProducts[0]]:matched;
+    if(!candidates.length){addMessage(cw().none,'bot');return true;}
+    const viable=candidates.filter(p=>Number(p.stock)>0&&NLP.validPrice(p));
+    if(!viable.length){addMessage(cw().unavailable,'bot');return true;}
+    state.cartDraft={candidates:viable,product:viable.length===1?viable[0]:null,size:parsed.size||'',color:parsed.color||'',quantity:parsed.quantity};
+    cartStep();return true;
+  }
+  function continueCart(text){
+    const d=state.cartDraft;if(!d)return false;
+    if(NLP.has(text,['non','annuler','cancel','le','لا','بلاش','fasakh','فسخ'])){cancelCart();return true;}
+    if(!d.product){
+      const matches=d.candidates.filter(p=>NLP.norm(text).includes(NLP.norm(p.name))||NLP.norm(p.name).includes(NLP.norm(text)));
+      if(matches.length===1){d.product=matches[0];cartStep();return true;}
+      return false;
+    }
+    const size=NLP.sizeOf(text),sizes=options(d.product.sizes);
+    const numeric=NLP.norm(text).match(/^(?:pointure |taille |size |مقاس |قياس )?(\d{2,3}|xxl|xl|xs|s|m|l)$/i);
+    const chosen=size||(numeric?numeric[1].toUpperCase():null);
+    if(chosen&&sizes.some(x=>NLP.norm(x)===NLP.norm(chosen))){d.size=chosen;cartStep();return true;}
+    const color=options(d.product.colors).find(x=>NLP.norm(text)===NLP.norm(x)||NLP.matchColor(Object.keys({noir:1,blanc:1,bleu:1,rouge:1,vert:1,gris:1,rose:1,jaune:1,beige:1}).find(k=>NLP.matchColor(k,[text])),[x])===x);
+    if(color){d.color=color;cartStep();return true;}
+    // Spoken confirmation is explicit confirmation if the full choice is already selected.
+    if(NLP.has(text,['oui','yes','ey','eyh','eyy','oui ajoute','اي','إي','نعم','ok zidh','ok zid','zidou'])&&d.product&&(!sizes.length||d.size)&&(!options(d.product.colors).length||d.color)){confirmCart(d);return true;}
+    return false;
+  }
   async function answer(text){
     const t=tr(),intent=NLP.intent(text);
     if(intent==='greeting')return {text:t.greeting};
@@ -194,6 +304,7 @@
     setLanguage(language(text));
     addMessage(text,'user');
     try{
+      if(continueCart(text)||startCartRequest(text)){suggestions.replaceChildren();return;}
       const response=await answer(text);
       addMessage(response.text,'bot',response.products||[]);
       const last=messages.lastChild?.querySelector('.sf-chat-msg-content');
@@ -208,7 +319,7 @@
     try {
       if(state.recognizer){state.recognizer.stop();state.recognizer=null;return;}
       const rec=new Speech();state.recognizer=rec;rec.lang=state.lang==='fr'?'fr-FR':'ar-TN';rec.interimResults=false;rec.maxAlternatives=1;
-      rec.onresult=e=>{input.value=e.results[0][0].transcript;input.focus();};
+      rec.onresult=e=>{const transcript=String(e.results[0][0].transcript||'').trim();if(transcript)send(transcript);};
       rec.onend=()=>{state.recognizer=null;voice.classList.remove('listening');};
       rec.onerror=()=>{state.recognizer=null;voice.classList.remove('listening');};
       voice.classList.add('listening');rec.start();
