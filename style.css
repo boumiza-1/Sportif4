@@ -119,3 +119,10 @@ button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visi
 @media(max-width:680px){.seo-product{grid-template-columns:1fr;gap:18px;padding-bottom:30px}.seo-product-copy{padding:8px 0}.seo-product h1{font-size:32px}.seo-product .btn{width:100%;font-size:11px}.seo-description,.seo-info p,.seo-info li,.seo-intro{font-size:14px}.breadcrumbs{font-size:11px;padding-top:20px;padding-bottom:18px}.seo-attributes>div{grid-template-columns:82px minmax(0,1fr)}.seo-info{padding-bottom:50px}.filters a{padding:10px 13px}.hero h1 .hero-seo-heading{font-size:17px;max-width:300px}.product-add{opacity:1;transform:none}}
 .product-pic{display:block}.product-title-button{border:0;background:none;padding:0;text-align:left;color:inherit;font:inherit;line-height:inherit}.product-title-button:hover{text-decoration:underline}.product-pic:is(button){width:100%;padding:0;border:0;text-align:left}.seo-image-placeholder{display:grid;place-items:center;min-height:180px;padding:24px;color:#69715c;font-size:14px}.seo-search-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .hero-fullscreen h1 i{color:#141717}
+
+/* Site creator credit — discreet and accessible on every generated storefront page */
+.bottom-footer .site-creator-credit{display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;color:#ccd1cc;font-size:12px;letter-spacing:0;text-align:center}
+.bottom-footer .site-creator-credit strong{font-weight:700;color:#fff}
+.bottom-footer .site-creator-credit a{color:var(--lime);text-decoration:none;font-weight:800;white-space:nowrap}
+.bottom-footer .site-creator-credit a:hover,.bottom-footer .site-creator-credit a:focus-visible{text-decoration:underline}
+@media(max-width:700px){.bottom-footer{flex-wrap:wrap;justify-content:center;gap:12px;text-align:center}.bottom-footer .site-creator-credit{width:100%}}
