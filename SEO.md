@@ -24,11 +24,12 @@ Pour actualiser immédiatement les pages : GitHub → Actions → **Publish SEO 
 
 Le workflow utilise Node.js 24 et les actions officielles épinglées. Il teste, lit les collections publiques `products` et `settings/store`, puis génère et publie `dist`. Un échec de lecture Firebase fait échouer le build ; il ne remplace pas les produits par des exemples. `dist` ne contient que les fichiers nécessaires au site, pas les tests, scripts de génération ni documents internes.
 
-Au premier déploiement réussi sur `main`, le workflow tente de sélectionner **GitHub Actions** comme source Pages, sans changer le domaine. Si GitHub refuse cette opération, le propriétaire doit choisir **Settings → Pages → Build and deployment → Source → GitHub Actions**, puis relancer le workflow. Une branche `seo-static-pages` sert à vérifier le build réel avant la première migration ; elle ne déploie pas le site.
+Le workflow utilise l’action officielle `deploy-pages`, qui prend en charge la source de publication actuelle sur `main`. Il attend la fin d’un éventuel déploiement automatique de la branche avant de publier les pages générées : la version source ne peut ainsi pas remplacer la version SEO. Le domaine et les réglages propriétaires restent inchangés. Le propriétaire peut facultativement sélectionner **Settings → Pages → Source → GitHub Actions** pour éviter le double travail des builds classiques. Une branche `seo-static-pages` sert à vérifier le build réel sans déployer le site.
 
 ## Vérifications locales
 
 - `node tests/seo-build.test.mjs` : génération, échappement, prix/stock, liens, sitemap, données privées exclues, refus d’effacement de dossiers étrangers.
+- `node tests/seo-pages-wait.test.mjs` : vérification de l’ordre des déploiements pour empêcher un ancien build d’écraser les pages générées.
 - `node tests/seo-live-check.test.mjs` : vérification du contrôleur de publication et des erreurs de canonical, prix, sitemap et version déployée.
 - `node tests/seo-browser.cjs` : avec Playwright/Chromium installés, lecture sans JavaScript, navigation, options, panier, données actuelles, pannes et mobile. `CHROMIUM_PATH` sélectionne le binaire si nécessaire. Ces tests utilisent exclusivement des données simulées.
 - `node scripts/build-seo.mjs --data /chemin/catalogue.json --out /tmp/sportifano-site` : génération de contrôle à partir d’un export public `{ "products": { ... }, "settings": { ... } }`. Sans `--data`, la commande lit le catalogue public réel.

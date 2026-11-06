@@ -32,6 +32,7 @@ jobs:
         run: |
           node tests/seo-build.test.mjs
           node tests/seo-live-check.test.mjs
+          node tests/seo-pages-wait.test.mjs
       - name: Generate pages from the public Firebase catalog
         run: node scripts/build-seo.mjs --out dist
       - name: Summarize generated public pages
@@ -64,6 +65,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -78,47 +80,12 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
-      # configure-pages only discovers an existing site; it does not migrate
-      # legacy branch publishing. Switch the source only after a complete build
-      # succeeded, and omit cname/source so the existing domain is preserved.
-      - name: Select workflow publishing for the existing Pages site
-        id: pages-source
-        continue-on-error: true
+      # Branch-source Pages is supported by deploy-pages. Wait for GitHub's
+      # automatic legacy deployment so it cannot overwrite the generated site.
+      - name: Wait for the automatic branch deployment
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          const api = process.env.GITHUB_API_URL || 'https://api.github.com';
-          const endpoint = `${api}/repos/${process.env.GITHUB_REPOSITORY}/pages`;
-          const headers = {
-            Authorization: `Bearer ${process.env.GH_TOKEN}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          };
-          const current = await fetch(endpoint, { headers });
-          if (!current.ok) {
-            const body = await current.json().catch(() => ({}));
-            console.log('::warning::' + `Cannot read Pages settings: HTTP ${current.status}; ${body.message || 'no API detail'}. Trying the official deployment action without changing settings.`.replace(/[\r\n]/g, ' '));
-            process.exit(1);
-          }
-          const site = await current.json();
-          if (site.build_type !== 'workflow') {
-            const response = await fetch(endpoint, {
-              method: 'PUT',
-              headers: { ...headers, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ build_type: 'workflow' })
-            });
-            if (!response.ok) {
-              const body = await response.json().catch(() => ({}));
-              console.log('::warning::' + `Pages source update refused: HTTP ${response.status}; ${body.message || 'no API detail'}. Trying the official deployment action; the custom domain is unchanged.`.replace(/[\r\n]/g, ' '));
-              process.exit(1);
-            }
-            console.log('Pages source changed to GitHub Actions; the custom domain was preserved.');
-          } else {
-            console.log('Pages already uses GitHub Actions.');
-          }
-          NODE
+        run: node scripts/wait-legacy-pages.mjs
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Deploy generated storefront
@@ -147,4 +114,6 @@ jobs:
             ...result.redirectChecks.map(r => `${r.from} → ${r.finalUrl || r.error}: ${r.ok ? 'OK' : 'requires domain settings review'}`)
           ];
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n\n') + '\n');
+          console.log(`::notice::SEO verified: ${result.publishedProducts} public products; ${result.checkedProducts} product pages checked; ${result.sitemapUrls} sitemap URLs; ${result.redirectWarnings.length} redirect warnings; commit ${result.sourceCommit}.`);
+          for (const warning of result.redirectWarnings) console.log('::warning::' + `Domain redirect needs review: ${warning.from} -> ${warning.finalUrl || warning.error}`.replace(/[\r\n]/g, ' '));
           NODE
