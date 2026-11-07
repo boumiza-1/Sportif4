@@ -185,7 +185,98 @@ function viewProduct(id){
 }
 function authScreen(register=false){modal(register?'Créer un compte':'Mon compte',`<div class="tab-buttons"><button id="loginTab" class="${!register?'active':''}">Connexion</button><button id="registerTab" class="${register?'active':''}">Inscription</button></div><form id="authForm">${register?'<label>Nom complet<input name="name" required maxlength="100"></label>':''}<label>Email<input type="email" name="email" required autocomplete="email"></label><label>Mot de passe<input type="password" name="password" minlength="6" required autocomplete="${register?'new-password':'current-password'}"></label><button class="btn btn-dark wide">${register?'CRÉER UN COMPTE':'SE CONNECTER'}</button><p id="authError" class="error-text"></p></form>`);$('#loginTab').onclick=()=>authScreen(false);$('#registerTab').onclick=()=>authScreen(true);$('#authForm').onsubmit=async e=>{e.preventDefault();if(!configured)return $('#authError').textContent='Configurez Firebase dans firebase.js';let f=new FormData(e.target);try{let r=register?await createUserWithEmailAndPassword(auth,String(f.get('email')),String(f.get('password'))):await signInWithEmailAndPassword(auth,String(f.get('email')),String(f.get('password')));if(register)await updateProfile(r.user,{displayName:String(f.get('name'))});close();toast('Bienvenue sur Sportifano !')}catch(err){$('#authError').textContent=readableError(err)}}}
 async function account(){if(!user)return authScreen();modal('Mon espace client',`<p>Connecté : <b>${safe(user.email)}</b></p><div class="tab-buttons"><button id="myOrdersBtn" class="active">Mes commandes</button><button id="signOutBtn">Déconnexion</button></div><div id="myOrders"><p>Chargement...</p></div>`);$('#signOutBtn').onclick=async()=>{await signOut(auth);close();toast('Vous êtes déconnecté')};try{let snap=await getDocs(query(collection(db,'orders'),where('userId','==',user.uid)));let arr=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));$('#myOrders').innerHTML=arr.length?arr.map(o=>`<div class="order-box"><b>Commande #${safe(o.id.slice(0,8))}</b><p>${safe(o.status||'pending')} · ${money(o.total)}</p><p>${o.items?.length||0} article(s)</p></div>`).join(''):'<p>Aucune commande pour le moment.</p>'}catch(e){$('#myOrders').textContent=readableError(e)}}
-function checkout(){if(!liveCatalog)return toast('Vérifiez la disponibilité auprès de la boutique avant de commander.');close();if(!validCart().length)return;modal('Finaliser la commande',`<form id="checkoutForm"><label>Nom et prénom<input name="name" required value="${safe(user?.displayName||'')}" maxlength="100"></label><label>Téléphone tunisien<input name="phone" type="tel" required placeholder="XX XXX XXX" minlength="8" maxlength="18"></label><label>Ville<input name="city" required maxlength="80"></label><label>Adresse complète<textarea name="address" rows="2" required maxlength="300"></textarea></label><label>Note de livraison (facultatif)<textarea name="note" rows="2" maxlength="300"></textarea></label><p>Mode de paiement : <b>À la livraison</b></p><p>Sous-total : <b>${money(validCart().reduce((t,i)=>t+cartProduct(i.id).price*i.qty,0))}</b><br>Livraison : <b>${money(settings.deliveryFee??8)}</b></p><button class="btn btn-dark wide">CONFIRMER MA COMMANDE →</button><p class="error-text" id="checkoutError"></p></form>`);$('#checkoutForm').onsubmit=async e=>{e.preventDefault();if(!configured)return $('#checkoutError').textContent='Configurez firebase.js avant de recevoir des commandes.';if(!user)return authScreen();let btn=e.target.querySelector('button[type=submit],button.btn');btn.disabled=true;let f=new FormData(e.target);try{let lineItems=validCart().map(i=>{let p=cartProduct(i.id);return {productId:p.id,name:p.name,price:Number(p.price),quantity:i.qty,size:i.size,color:i.color}});const subtotal=lineItems.reduce((n,i)=>n+i.price*i.quantity,0),deliveryFee=Number(settings.deliveryFee??8);await addDoc(collection(db,'orders'),{userId:user.uid,email:user.email,name:String(f.get('name')),phone:String(f.get('phone')),city:String(f.get('city')),address:String(f.get('address')),note:String(f.get('note')||''),items:lineItems,subtotal,deliveryFee,total:subtotal+deliveryFee,status:'pending',paymentMethod:'cash_on_delivery',createdAt:serverTimestamp()});cart=[];saveCart();modal('Commande reçue',`<h3>Merci pour votre commande !</h3><p>Votre commande a été enregistrée. Notre équipe vous contactera pour confirmer la livraison.</p><button id="finishOrder" class="btn btn-dark wide">CONTINUER MES ACHATS</button>`);$('#finishOrder').onclick=close;toast('Commande enregistrée')}catch(err){$('#checkoutError').textContent=readableError(err);btn.disabled=false}}}
+function directCheckout(id,selected={}){
+  const p=products.find(x=>String(x.id)===String(id)&&x.active!==false);
+  if(!p||!liveCatalog||!validPrice(p)||Number(p.stock)<1||!productOptionState(p).configured)return toast('Ce produit doit être configuré et disponible avant la commande.');
+  openOrderForm({product:p,selected});
+}
+function checkout(){
+  if(!liveCatalog)return toast('Vérifiez le stock en direct avant de commander.');
+  if(!validCart().length)return toast('Votre panier est vide.');
+  for(const item of validCart()){
+    const p=cartProduct(item.id);
+    if(!validateSelectedSize(p,item.size).ok)return toast('Choisissez la taille / pointure des articles avant commande.');
+    if((p.colors||[]).length&&!(p.colors||[]).includes(item.color))return toast('Choisissez une couleur disponible.');
+  }
+  openOrderForm({items:validCart()});
+}
+function openOrderForm({product=null,selected={},items=null}={}){
+  close();
+  const direct=!!product;
+  const sizeCtrl=direct?productSizeControl(product):'';
+  const colors=direct&&Array.isArray(product.colors)?product.colors:[];
+  const colorCtrl=colors.length?'<label>Couleur *<select name="color" required><option value="">Choisir une couleur</option>'+colors.map(c=>'<option value="'+safe(c)+'" '+(selected.color===c?'selected':'')+'>'+safe(c)+'</option>').join('')+'</select></label>':'';
+  const initialSize=selected.size||'';
+  const directPrice=direct?Number(product.price):0;
+  const subtotal=direct?directPrice:(items||[]).reduce((total,i)=>total+Number(cartProduct(i.id).price)*i.qty,0);
+  const fee=Number(settings.deliveryFee??8);
+  modal('Passer la commande', '<form id="checkoutForm" class="direct-order-form">'+
+    (direct?'<div class="order-selected-product"><img src="'+safe(productImage(product))+'" alt=""><div><strong>'+safe(product.name)+'</strong><small>'+money(product.price)+'</small></div></div><div class="detail-options">'+sizeCtrl+colorCtrl+'</div>':'<p class="muted">Vos articles du panier seront commandés avec les options sélectionnées.</p>')+
+    '<label>Nom et prénom *<input name="name" required minlength="2" maxlength="100" autocomplete="name" value="'+safe(user?.displayName||'')+'"></label>'+
+    '<label>Téléphone tunisien (8 chiffres) *<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required placeholder="98453827" maxlength="18" pattern="(\\+216|00216)?[2459][0-9]{7}" title="Exemple : 98453827 (8 chiffres), ou +21698453827"></label>'+
+    '<label>Ville *<input name="city" required maxlength="80" autocomplete="address-level2"></label>'+
+    '<label>Adresse complète *<textarea name="address" rows="2" required minlength="5" maxlength="300" autocomplete="street-address"></textarea></label>'+
+    '<label>Note de livraison (facultatif)<textarea name="note" rows="2" maxlength="300"></textarea></label>'+
+    '<p>Mode de paiement : <b>À la livraison</b></p>'+
+    '<p>Sous-total : <b id="checkoutSubtotal">'+money(subtotal)+'</b><br>Livraison : <b>'+money(fee)+'</b></p>'+
+    '<button type="submit" class="btn btn-dark wide" id="placeOrderBtn">CONFIRMER MA COMMANDE ↗</button>'+
+    '<p class="muted">Nous vous contacterons pour confirmer les détails et la disponibilité avant expédition.</p>'+
+    '<p class="error-text" id="checkoutError" role="alert"></p></form>');
+  const form=$('#checkoutForm');
+  if(direct){
+    const sizeSel=form.elements.namedItem('size');
+    if(sizeSel&&initialSize&&[...sizeSel.options].some(o=>o.value===initialSize))sizeSel.value=initialSize;
+  }
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    const out=$('#checkoutError'),button=$('#placeOrderBtn');out.textContent='';
+    const fd=new FormData(form);
+    const phone=tunisianMobile(fd.get('phone'));
+    if(!phone){out.textContent='Numéro tunisien invalide : 8 chiffres. Exemple valide : 98453827. Exemple refusé : 9845382.';form.elements.namedItem('phone').focus();return;}
+    const size=String(fd.get('size')||''),color=String(fd.get('color')||'');
+    if(direct&&!validateSelectedSize(product,size).ok){out.textContent='Choisissez une taille ou pointure disponible.';return;}
+    if(direct&&colors.length&&!colors.includes(color)){out.textContent='Choisissez une couleur.';return;}
+    if(!configured){out.textContent='Le service de commandes est temporairement indisponible.';return;}
+    button.disabled=true;button.textContent='ENREGISTREMENT...';
+    try{
+      const requested=direct?[{id:product.id,qty:1,size,color}]:validCart().map(i=>({...i}));
+      // Refresh each item from Firebase immediately before submission.
+      const orderItems=[];
+      for(const entry of requested){
+        const snap=await getDoc(doc(db,'products',entry.id));
+        if(!snap.exists())throw Error('Produit indisponible. Veuillez actualiser la boutique.');
+        const current={...snap.data(),id:entry.id};
+        if(current.active===false||!validPrice(current))throw Error('Article indisponible.');
+        const sz=validateSelectedSize(current,entry.size);
+        if(!sz.ok)throw Error('Taille ou pointure non disponible pour : '+current.name);
+        if((current.colors||[]).length&&!(current.colors||[]).includes(entry.color))throw Error('Couleur non disponible pour : '+current.name);
+        const quantity=Number(entry.qty);
+        if(!Number.isSafeInteger(quantity)||quantity<1||Number(current.stock)<quantity)throw Error('Stock insuffisant pour : '+current.name);
+        orderItems.push({productId:current.id,name:String(current.name),price:Number(current.price),quantity,size:sz.size,color:entry.color||''});
+      }
+      let customer=user||auth.currentUser;
+      if(!customer){
+        try{const result=await signInAnonymously(auth);customer=result.user;user=customer;}
+        catch(err){throw Error('Commande invité indisponible pour le moment. Activez la connexion anonyme Firebase ou connectez-vous avec votre compte Sportifano.');}
+      }
+      const cost=orderItems.reduce((sum,p)=>sum+p.price*p.quantity,0);
+      const name=String(fd.get('name')||'').trim(),city=String(fd.get('city')||'').trim(),address=String(fd.get('address')||'').trim();
+      if(name.length<2||!city||address.length<5)throw Error('Complétez le nom, la ville et l’adresse.');
+      const result=await addDoc(collection(db,'orders'),{
+        userId:customer.uid,email:customer.email||'',name,phone,city,address,
+        note:String(fd.get('note')||'').trim(),items:orderItems,
+        subtotal:cost,deliveryFee:fee,total:cost+fee,
+        status:'pending',paymentMethod:'cash_on_delivery',createdAt:serverTimestamp()
+      });
+      if(!direct){cart=[];saveCart();}
+      modal('Commande reçue','<div class="order-success"><h3>Merci pour votre commande !</h3><p>Référence : <strong>#'+safe(result.id.slice(0,8))+'</strong></p><p>Votre commande a été enregistrée. Notre équipe vous contactera pour confirmer la livraison.</p><button type="button" id="finishOrder" class="btn btn-dark wide">CONTINUER MES ACHATS</button></div>');
+      $('#finishOrder').onclick=close;toast('Commande enregistrée');
+    }catch(err){
+      out.textContent=String(err?.message||readableError(err));
+      button.disabled=false;button.textContent='CONFIRMER MA COMMANDE ↗';
+    }
+  };
+}
 async function init(){
   $('#year').textContent=new Date().getFullYear();
   const timeout=promise=>{let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Lecture temporairement indisponible')),12000)})]).finally(()=>clearTimeout(timer))};
