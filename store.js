@@ -1,8 +1,9 @@
 import {auth,db,configured} from './firebase.js';
 import {demoProducts,money,safe,imageFallback,toast,readableError} from './common.js';
-import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInAnonymously,signOut,updateProfile} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {collection,getDocs,addDoc,doc,getDoc,serverTimestamp,query,where} from './database-api.js';
 import {productPath,categoryPath,imageUrl,imageSrcset} from './seo-shared.mjs';
+import {productOptionState,validateSelectedSize,tunisianMobile} from './product-options.mjs';
 const $=s=>document.querySelector(s);let products=[],settings={},user=null,category='all',search='',sort='new';
 category=document.body.dataset.category||'all';
 let liveCatalog=false;
@@ -73,7 +74,7 @@ function renderProducts(){
     const title=published?`<a href="${safe(href)}">${safe(p.name)}</a>`:`<button class="product-title-button" type="button" data-view="${safe(p.id)}">${safe(p.name)}</button>`;
     const categoryName=p.category||'Collection';
     const categoryLabel=publishedCategories.has(p.category)?`<a href="${safe(categoryPath(p.category))}"><small>${safe(categoryName)}</small></a>`:`<small>${safe(categoryName)}</small>`;
-    return `<article class="product-card"><${picTag} class="product-pic product-image-link" ${target} aria-label="Voir ${safe(p.name)}"><img src="${safe(productImage(p))}"${responsiveImage(p)} alt="${safe(p.name)}" loading="lazy" width="640" height="780">${p.badge?`<span class="product-badge">${safe(p.badge)}</span>`:''}<span class="product-add">VOIR LE PRODUIT ↗</span></${picTag}><div class="product-info">${categoryLabel}<h3>${title}</h3><b>${validPrice(p)?money(p.price):'Prix à confirmer'}</b>${validPrice({price:p.oldPrice})&&Number(p.oldPrice)>Number(p.price)?`<span class="old-price">${money(p.oldPrice)}</span>`:''}</div></article>`;
+    return `<article class="product-card"><${picTag} class="product-pic product-image-link" ${target} aria-label="Voir ${safe(p.name)}"><img src="${safe(productImage(p))}"${responsiveImage(p)} alt="${safe(p.name)}" loading="lazy" width="640" height="780">${p.badge?`<span class="product-badge">${safe(p.badge)}</span>`:''}<span class="product-add">VOIR LE PRODUIT ↗</span></${picTag}><div class="product-info">${categoryLabel}<h3>${title}</h3><b>${validPrice(p)?money(p.price):'Prix à confirmer'}</b>${validPrice({price:p.oldPrice})&&Number(p.oldPrice)>Number(p.price)?`<span class="old-price">${money(p.oldPrice)}</span>`:''}</div><button type="button" class="product-buy-now" data-buy="${safe(p.id)}" ${!liveCatalog||Number(p.stock)<1||!productOptionState(p).configured?'disabled':''}>PASSER LA COMMANDE ↗</button></article>`;
   }).join('');
   $('#emptyProducts')?.classList.toggle('hidden',!!list.length);
 }
@@ -137,9 +138,9 @@ function validatedCartAdd({productId,size='',color='',quantity=1}={}){
   if(!Number.isSafeInteger(count)||count<1||count>10)return {ok:false,code:'bad_quantity'};
   if(!Number.isSafeInteger(available)||available<1)return {ok:false,code:'out_of_stock'};
   const options=(value)=>Array.isArray(value)?value.map(v=>String(v).trim()).filter(Boolean):[];
-  const sizes=options(p.sizes),colors=options(p.colors);
+  const sizeState=productOptionState(p),sizes=sizeState.sizes,colors=options(p.colors);if(!sizeState.configured)return {ok:false,code:'size_not_configured'};
   const match=(requested,available)=>available.find(item=>item.toLowerCase()===String(requested||'').trim().toLowerCase());
-  const chosenSize=sizes.length?match(size,sizes)||(!size&&sizes.length===1?sizes[0]:''):'';
+  const sizeCheck=validateSelectedSize(p,size);if(!sizeCheck.ok)return {ok:false,code:sizeCheck.code,sizes};const chosenSize=sizeCheck.size;
   const chosenColor=colors.length?match(color,colors)||(!color&&colors.length===1?colors[0]:''):'';
   if((sizes.length&&!chosenSize)||(size&&!sizes.length))return {ok:false,code:'size_unavailable',sizes};
   if((colors.length&&!chosenColor)||(color&&!colors.length))return {ok:false,code:'color_unavailable',colors};
@@ -158,7 +159,30 @@ window.SportifanoCart=Object.freeze({
   open:()=>{$('#cartDrawer').classList.remove('hidden');$('#shade').classList.remove('hidden')},
   isReady:()=>liveCatalog
 });
-function viewProduct(id){let p=products.find(x=>x.id===id&&x.active!==false);if(!p)return;if(!validPrice(p))return toast('Contactez la boutique pour confirmer le prix de cet article.');modal(p.name,`<div class="product-detail"><img src="${safe(productImage(p))}" alt="${safe(p.name)}"><div><small>${safe(p.category)}</small><h3>${safe(p.name)}</h3><p class="detail-price">${money(p.price)}</p><p class="muted">${safe(p.description||'Conçu pour bouger avec vous.')}</p><p class="muted">Stock : ${Number(p.stock||0)}</p><form id="addProductForm"><div class="detail-options">${p.sizes?.length?`<label>Taille<select name="size">${p.sizes.map(s=>`<option>${safe(s)}</option>`).join('')}</select></label>`:''}${p.colors?.length?`<label>Couleur<select name="color">${p.colors.map(s=>`<option>${safe(s)}</option>`).join('')}</select></label>`:''}</div>${!liveCatalog?'<p class="muted">Prix et disponibilité à confirmer auprès de Sportifano avant commande.</p>':''}<button class="btn btn-dark wide" ${!liveCatalog||Number(p.stock||0)<1?'disabled':''}>${!liveCatalog?'DISPONIBILITÉ À CONFIRMER':Number(p.stock||0)>0?'AJOUTER AU PANIER ↗':'RUPTURE DE STOCK'}</button></form></div></div>`);$('#addProductForm').onsubmit=e=>{e.preventDefault();const fd=new FormData(e.target);const result=validatedCartAdd({productId:p.id,size:String(fd.get('size')||''),color:String(fd.get('color')||''),quantity:1});if(!result.ok)return toast(result.code==='insufficient_stock'?'Stock disponible insuffisant':'Option indisponible : vérifiez la taille, la couleur et le stock.');close();toast('Produit ajouté au panier')}}
+function productSizeControl(p,field='size'){
+  const conf=productOptionState(p);if(!conf.required)return '';
+  const name=conf.type==='shoe'?'Pointure *':'Taille *';
+  return '<label>'+name+'<select name="'+field+'" required><option value="">Choisissez '+(conf.type==='shoe'?'une pointure':'une taille')+'</option>'+conf.sizes.map(size=>'<option value="'+safe(size)+'">'+safe(size)+'</option>').join('')+'</select></label>';
+}
+function viewProduct(id){
+  const p=products.find(x=>String(x.id)===String(id)&&x.active!==false);
+  if(!p)return;
+  if(!validPrice(p))return toast('Contactez la boutique pour confirmer le prix.');
+  const opts=productOptionState(p),ready=liveCatalog&&opts.configured&&Number(p.stock)>0;
+  modal(p.name,'<div class="product-detail"><img src="'+safe(productImage(p))+'" alt="'+safe(p.name)+'"><div><small>'+safe(p.category||'')+'</small><h3>'+safe(p.name)+'</h3><p class="detail-price">'+money(p.price)+'</p><p class="muted">'+safe(p.description||'Produit Sportifano')+'</p><p class="muted">Stock : '+Number(p.stock||0)+'</p><form id="addProductForm"><div class="detail-options">'+productSizeControl(p)+(p.colors?.length?'<label>Couleur<select name="color" required><option value="">Choisissez une couleur</option>'+p.colors.map(x=>'<option value="'+safe(x)+'">'+safe(x)+'</option>').join('')+'</select></label>':'')+'</div>'+(!opts.configured?'<p class="error-text">Tailles non renseignées. La boutique doit configurer ce produit avant toute commande.</p>':'')+'<button type="submit" class="btn btn-dark wide" '+(!ready?'disabled':'')+'>AJOUTER AU PANIER ↗</button><button type="button" class="btn btn-outline wide" id="buyFromDetails" '+(!ready?'disabled':'')+'>PASSER LA COMMANDE ↗</button></form></div></div>');
+  $('#addProductForm').onsubmit=e=>{
+    e.preventDefault();const fd=new FormData(e.target);
+    const result=validatedCartAdd({productId:p.id,size:String(fd.get('size')||''),color:String(fd.get('color')||''),quantity:1});
+    if(!result.ok)return toast(result.code==='size_required'?'Choisissez votre taille / pointure.':'Option ou stock indisponible.');
+    close();toast('Produit ajouté au panier');
+  };
+  $('#buyFromDetails').onclick=()=>{
+    const fd=new FormData($('#addProductForm'));
+    const size=String(fd.get('size')||''),color=String(fd.get('color')||'');
+    if(!$('#addProductForm').reportValidity())return;
+    directCheckout(p.id,{size,color});
+  };
+}
 function authScreen(register=false){modal(register?'Créer un compte':'Mon compte',`<div class="tab-buttons"><button id="loginTab" class="${!register?'active':''}">Connexion</button><button id="registerTab" class="${register?'active':''}">Inscription</button></div><form id="authForm">${register?'<label>Nom complet<input name="name" required maxlength="100"></label>':''}<label>Email<input type="email" name="email" required autocomplete="email"></label><label>Mot de passe<input type="password" name="password" minlength="6" required autocomplete="${register?'new-password':'current-password'}"></label><button class="btn btn-dark wide">${register?'CRÉER UN COMPTE':'SE CONNECTER'}</button><p id="authError" class="error-text"></p></form>`);$('#loginTab').onclick=()=>authScreen(false);$('#registerTab').onclick=()=>authScreen(true);$('#authForm').onsubmit=async e=>{e.preventDefault();if(!configured)return $('#authError').textContent='Configurez Firebase dans firebase.js';let f=new FormData(e.target);try{let r=register?await createUserWithEmailAndPassword(auth,String(f.get('email')),String(f.get('password'))):await signInWithEmailAndPassword(auth,String(f.get('email')),String(f.get('password')));if(register)await updateProfile(r.user,{displayName:String(f.get('name'))});close();toast('Bienvenue sur Sportifano !')}catch(err){$('#authError').textContent=readableError(err)}}}
 async function account(){if(!user)return authScreen();modal('Mon espace client',`<p>Connecté : <b>${safe(user.email)}</b></p><div class="tab-buttons"><button id="myOrdersBtn" class="active">Mes commandes</button><button id="signOutBtn">Déconnexion</button></div><div id="myOrders"><p>Chargement...</p></div>`);$('#signOutBtn').onclick=async()=>{await signOut(auth);close();toast('Vous êtes déconnecté')};try{let snap=await getDocs(query(collection(db,'orders'),where('userId','==',user.uid)));let arr=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));$('#myOrders').innerHTML=arr.length?arr.map(o=>`<div class="order-box"><b>Commande #${safe(o.id.slice(0,8))}</b><p>${safe(o.status||'pending')} · ${money(o.total)}</p><p>${o.items?.length||0} article(s)</p></div>`).join(''):'<p>Aucune commande pour le moment.</p>'}catch(e){$('#myOrders').textContent=readableError(e)}}
 function checkout(){if(!liveCatalog)return toast('Vérifiez la disponibilité auprès de la boutique avant de commander.');close();if(!validCart().length)return;modal('Finaliser la commande',`<form id="checkoutForm"><label>Nom et prénom<input name="name" required value="${safe(user?.displayName||'')}" maxlength="100"></label><label>Téléphone tunisien<input name="phone" type="tel" required placeholder="XX XXX XXX" minlength="8" maxlength="18"></label><label>Ville<input name="city" required maxlength="80"></label><label>Adresse complète<textarea name="address" rows="2" required maxlength="300"></textarea></label><label>Note de livraison (facultatif)<textarea name="note" rows="2" maxlength="300"></textarea></label><p>Mode de paiement : <b>À la livraison</b></p><p>Sous-total : <b>${money(validCart().reduce((t,i)=>t+cartProduct(i.id).price*i.qty,0))}</b><br>Livraison : <b>${money(settings.deliveryFee??8)}</b></p><button class="btn btn-dark wide">CONFIRMER MA COMMANDE →</button><p class="error-text" id="checkoutError"></p></form>`);$('#checkoutForm').onsubmit=async e=>{e.preventDefault();if(!configured)return $('#checkoutError').textContent='Configurez firebase.js avant de recevoir des commandes.';if(!user)return authScreen();let btn=e.target.querySelector('button[type=submit],button.btn');btn.disabled=true;let f=new FormData(e.target);try{let lineItems=validCart().map(i=>{let p=cartProduct(i.id);return {productId:p.id,name:p.name,price:Number(p.price),quantity:i.qty,size:i.size,color:i.color}});const subtotal=lineItems.reduce((n,i)=>n+i.price*i.quantity,0),deliveryFee=Number(settings.deliveryFee??8);await addDoc(collection(db,'orders'),{userId:user.uid,email:user.email,name:String(f.get('name')),phone:String(f.get('phone')),city:String(f.get('city')),address:String(f.get('address')),note:String(f.get('note')||''),items:lineItems,subtotal,deliveryFee,total:subtotal+deliveryFee,status:'pending',paymentMethod:'cash_on_delivery',createdAt:serverTimestamp()});cart=[];saveCart();modal('Commande reçue',`<h3>Merci pour votre commande !</h3><p>Votre commande a été enregistrée. Notre équipe vous contactera pour confirmer la livraison.</p><button id="finishOrder" class="btn btn-dark wide">CONTINUER MES ACHATS</button>`);$('#finishOrder').onclick=close;toast('Commande enregistrée')}catch(err){$('#checkoutError').textContent=readableError(err);btn.disabled=false}}}
@@ -194,6 +218,7 @@ async function init(){
 
 if(configured)onAuthStateChanged(auth,u=>user=u);
 document.addEventListener('click',e=>{const button=e.target.closest('[data-view]');if(button&&!button.disabled)viewProduct(button.dataset.view)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-buy]');if(b&&!b.disabled)directCheckout(b.dataset.buy);});
 $('#filters')?.addEventListener('click',e=>{const b=e.target.closest('button[data-category]');if(!b)return;category=b.dataset.category;document.querySelectorAll('#filters [data-category]').forEach(x=>x.classList.toggle('active',x===b));renderProducts()});
 $('#sortSelect')?.addEventListener('change',e=>{sort=e.target.value;renderProducts()});
 $('#searchInput')?.addEventListener('input',e=>{search=e.target.value;renderProducts()});
