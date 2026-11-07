@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, seo-static-pages]
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   # Refresh generated pages after catalog changes made through the Firebase admin.
   schedule:
     - cron: '17 * * * *'
