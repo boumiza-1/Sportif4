@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, seo-static-pages]
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   # Refresh generated pages after catalog changes made through the Firebase admin.
   schedule:
     - cron: '17 * * * *'
@@ -36,6 +38,8 @@ jobs:
           node --test tests/chatbot-nlp.test.cjs
           node --test tests/chatbot-cart.test.cjs
           node --test tests/product-links.test.mjs
+          node --test tests/product-options.test.mjs
+          node --check admin.js
       - name: Generate pages from the public Firebase catalog
         run: node scripts/build-seo.mjs --out dist
       - name: Summarize generated public pages
