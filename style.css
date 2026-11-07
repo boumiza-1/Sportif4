@@ -126,3 +126,21 @@ button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visi
 .bottom-footer .site-creator-credit a{color:var(--lime);text-decoration:none;font-weight:800;white-space:nowrap}
 .bottom-footer .site-creator-credit a:hover,.bottom-footer .site-creator-credit a:focus-visible{text-decoration:underline}
 @media(max-width:700px){.bottom-footer{flex-wrap:wrap;justify-content:center;gap:12px;text-align:center}.bottom-footer .site-creator-credit{width:100%}}
+
+/* Quick product ordering — visible directly below every product. */
+.product-buy-now{display:block;width:calc(100% - 22px);margin:4px 11px 15px;padding:12px 8px;border:0;border-radius:9px;background:#d6fa35;color:#192018;font:900 11px Outfit,Arial,sans-serif;letter-spacing:.03em;cursor:pointer}
+.product-buy-now:hover:not(:disabled){background:#c7f21a}
+.product-buy-now:disabled{opacity:.55;cursor:not-allowed}
+.product-detail .btn-outline{border:2px solid #151515;background:transparent;color:#151515;margin-top:11px}
+.product-detail select{min-height:43px}
+.direct-order-form{display:grid;gap:13px}
+.direct-order-form label{display:grid;gap:6px;font-size:12px;font-weight:800}
+.direct-order-form input,.direct-order-form textarea,.direct-order-form select{width:100%;border:1px solid #d7ded7;border-radius:9px;padding:12px;font:inherit;background:#fff}
+.direct-order-form input:focus,.direct-order-form select:focus{outline:2px solid #a5cd36}
+.order-selected-product{display:flex;align-items:center;gap:14px;padding:12px;background:#f5f8ee;border-radius:12px}
+.order-selected-product img{width:64px;height:75px;object-fit:cover;border-radius:7px}
+.order-selected-product div{display:grid;gap:6px}
+.order-selected-product strong{font-size:15px}
+.order-selected-product small{font-size:12px;color:#555}
+.order-success{text-align:center;padding:15px}
+@media(max-width:650px){.product-buy-now{font-size:10px;padding:12px 5px}.direct-order-form{gap:11px}}
