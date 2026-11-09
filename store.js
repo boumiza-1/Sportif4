@@ -81,6 +81,7 @@ function renderProducts(){
   const list=products.filter(p=>p.active!==false&&(category==='all'||p.category===category)&&(`${p.name} ${p.category}`.toLowerCase().includes(search.toLowerCase())));
   if(sort==='asc')list.sort((a,b)=>a.price-b.price);if(sort==='desc')list.sort((a,b)=>b.price-a.price);
   grid.innerHTML=list.map(p=>{
+    const published=publishedProducts.has(p.id);
     const href=adProductUrl(p.id);
     const picTag=published?'a':'button';
     const target=published?`href="${safe(href)}"`:`type="button" data-view="${safe(p.id)}"`;
