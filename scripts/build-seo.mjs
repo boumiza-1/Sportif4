@@ -6,7 +6,7 @@ import { productPath, categoryPath, imageUrl, imageSrcset } from '../seo-shared.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MARKER = '.sportifano-seo-output';
 const PUBLIC_FIELDS = ['name', 'category', 'price', 'oldPrice', 'stock', 'active', 'badge', 'description', 'image', 'sizes', 'colors', 'createdAt', 'updatedAt'];
-const RUNTIME_FILES = ['style.css', 'chatbot.css', 'chatbot-nlp.js', 'chatbot.js', 'store.js', 'product-options.mjs', 'common.js', 'firebase.js', 'database-api.js', 'admin.html', 'admin.js', 'admin.css', 'cloudinary.js', 'seo-shared.mjs', 'CNAME'];
+const RUNTIME_FILES = ['style.css', 'chatbot.css', 'chatbot-nlp.js', 'chatbot.js', 'store.js', 'meta-pixel.mjs', 'product-options.mjs', 'common.js', 'firebase.js', 'database-api.js', 'admin.html', 'admin.js', 'admin.css', 'cloudinary.js', 'seo-shared.mjs', 'CNAME'];
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const compact = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const clip = (value, max = 160) => compact(value).length > max ? compact(value).slice(0, max - 1).trimEnd() + '…' : compact(value);
