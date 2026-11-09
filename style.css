@@ -155,3 +155,12 @@ button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visi
 .pixel-settings{border:1px solid #87917e;border-radius:20px;background:transparent;color:inherit;font:600 11px Outfit,Arial,sans-serif;padding:7px 10px;cursor:pointer}
 .pixel-settings[hidden]{display:none}
 @media(max-width:520px){.meta-consent{bottom:12px;left:12px;width:calc(100vw - 24px);padding:13px}}
+
+/* Two clear shopping actions on every card */
+.product-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:2px 8px 14px}
+.product-card-actions button{width:100%;margin:0;min-width:0;min-height:44px;padding:10px 5px;border-radius:8px;font:800 10px Outfit,Arial,sans-serif;letter-spacing:.01em;line-height:1.3}
+.product-card-actions .product-add-cart{border:1px solid #191c1a;background:#fff;color:#191c1a;cursor:pointer}
+.product-card-actions .product-add-cart:hover:not(:disabled){background:#f1f7dc}
+.product-card-actions .product-buy-now{border:1px solid #c6e941;background:#d6fa35;color:#192018}
+.product-card-actions button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:680px){.product-card-actions{grid-template-columns:1fr;padding:0 5px 12px;gap:5px}.product-card-actions button{min-height:41px;font-size:10px}}
