@@ -144,3 +144,14 @@ button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visi
 .order-selected-product small{font-size:12px;color:#555}
 .order-success{text-align:center;padding:15px}
 @media(max-width:650px){.product-buy-now{font-size:10px;padding:12px 5px}.direct-order-form{gap:11px}}
+
+/* Optional advertising preferences; never block shopping. */
+.meta-consent{position:fixed;z-index:4000;bottom:22px;left:16px;width:min(420px,calc(100vw - 32px));background:#181e1a;color:#fff;border:1px solid #bddf56;border-radius:16px;padding:17px;box-shadow:0 14px 44px #0008}
+.meta-consent[hidden]{display:none}
+.meta-consent p{margin:0 0 12px;font-size:12px;line-height:1.55}
+.meta-consent>div{display:flex;flex-wrap:wrap;gap:8px}
+.meta-consent button{background:#d6fa35;border:0;border-radius:9px;padding:9px 13px;color:#182019;font-weight:800;cursor:pointer}
+.meta-consent button.secondary{background:#313b35;color:#fff;border:1px solid #788478}
+.pixel-settings{border:1px solid #87917e;border-radius:20px;background:transparent;color:inherit;font:600 11px Outfit,Arial,sans-serif;padding:7px 10px;cursor:pointer}
+.pixel-settings[hidden]{display:none}
+@media(max-width:520px){.meta-consent{bottom:12px;left:12px;width:calc(100vw - 24px);padding:13px}}
