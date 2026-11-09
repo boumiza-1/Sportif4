@@ -59,7 +59,7 @@ function orderLineItem(i){
   const size=String(i.size||'').trim(),color=String(i.color||'').trim();
   const quantity=Number(i.quantity||i.qty||1);
   return '<article class="admin-order-item">'+
-    '<img src="'+safe(photo)+'" loading="lazy" alt="Photo de '+safe(i.name||product?.name||'produit')+'" onerror="this.onerror=null;this.src=\\''+safe(imageFallback)+'\\'">'+
+    '<img src="'+safe(photo)+'" loading="lazy" alt="Photo de '+safe(i.name||product?.name||'produit')+'">'+
     '<div><strong>'+safe(i.name||product?.name||'Produit Sportifano')+'</strong>'+
     '<small>Réf. '+safe(String(i.productId||i.id||'—'))+'</small>'+
     '<p>'+safe(size?'Pointure / taille : '+size:'Sans taille')+(color?' · '+safe('Couleur : '+color):'')+'</p>'+
