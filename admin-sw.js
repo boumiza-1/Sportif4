@@ -16,8 +16,8 @@ messaging.onBackgroundMessage(payload=>{
   const orderId=String(payload.data.orderId||'');
   return self.registration.showNotification('Sportifano · Nouvelle commande',{
     body:'Une nouvelle commande attend votre validation.',
-    icon:'/admin-icon.svg',
-    badge:'/admin-icon.svg',
+    icon:'/admin-icon-192.png',
+    badge:'/admin-icon-192.png',
     tag:'sportifano-new-order-'+orderId,
     renotify:true,
     data:{url:adminUrl(orderId)}
