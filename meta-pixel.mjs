@@ -27,12 +27,12 @@ function showPanel(force=false){
     panel=document.createElement('div');
     panel.className='meta-consent';
     panel.setAttribute('role','region');
-    panel.setAttribute('aria-label','Préférences de suivi publicitaire');
+    panel.setAttribute('aria-label','Préférences de cookies');
     const message=document.createElement('p');
-    message.textContent='Sportifano utilise Meta Pixel pour mesurer les visites, vues de produits et commandes, uniquement avec votre accord. / نستخدموا Meta Pixel لقياس الإعلانات كان بموافقتك.';
+    message.textContent='Nous utilisons des cookies facultatifs pour mesurer l’audience et améliorer votre expérience. Vous pouvez accepter ou refuser. / نستعملوا كوكيز اختيارية لتحسين الخدمة وقياس الزيارات. تنجم توافق أو ترفض.';
     const buttons=document.createElement('div');
     const accept=document.createElement('button');accept.type='button';accept.textContent='Accepter / نوافق';
-    const reject=document.createElement('button');reject.type='button';reject.textContent='Refuser / لا';reject.className='secondary';
+    const reject=document.createElement('button');reject.type='button';reject.textContent='Refuser / نرفض';reject.className='secondary';
     accept.addEventListener('click',()=>{remember('yes');panel.hidden=true;activate();});
     reject.addEventListener('click',()=>{remember('no');active=false;panel.hidden=true;});
     buttons.append(accept,reject);
