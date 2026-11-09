@@ -37,6 +37,10 @@ details.onclick=()=>{window.location.assign(adProductUrl(p.id));};
 }
 $('#heroProductPrev').onclick=()=>show(index-1);$('#heroProductNext').onclick=()=>show(index+1);
 show(0);
+if(list.length>1&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+  const rotate=()=>{if(!document.hidden&&!hero.matches(':hover')&&!hero.matches(':focus-within'))show(index+1);};
+  window.setInterval(rotate,6500);
+}
 }
 function renderShowcase(){
 const host=$('#showcaseList');if(!host)return;
@@ -55,7 +59,7 @@ preload.onload=()=>{stageImage.src=next;stageImage.alt=p.name;requestAnimationFr
 preload.onerror=()=>{stageImage.src=imageFallback;stageImage.classList.remove('is-changing')};
 preload.src=next;
 stageName.textContent=p.name||'Produit Sportifano';stageCategory.textContent=p.category||'Sportifano';stageDescription.textContent=p.description||'Découvrez ce produit sportif sur Sportifano.';stagePrice.textContent=money(p.price);stageIndex.textContent=String(index+1).padStart(2,'0');
-stageView.onclick=()=>viewProduct(p.id);
+stageView.disabled=false;stageView.onclick=()=>viewProduct(p.id);
 }
 host.onclick=e=>{const b=e.target.closest('[data-showcase]');if(!b)return;activate(b.dataset.showcase,list.findIndex(p=>String(p.id)===b.dataset.showcase))};
 const observer=('IntersectionObserver' in window)?new IntersectionObserver(entries=>{
@@ -64,6 +68,13 @@ if(visible.length){const b=visible[0].target;if(b.dataset.showcase!==activeId)ac
 },{rootMargin:'-30% 0px -35% 0px',threshold:0}):null;
 host.querySelectorAll('[data-showcase]').forEach(b=>{if(observer)observer.observe(b)});
 activate(list[0].id,0);
+if(list.length>1&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+  window.setInterval(()=>{
+    if(document.hidden||host.matches(':hover')||host.matches(':focus-within'))return;
+    const next=(list.findIndex(p=>String(p.id)===activeId)+1)%list.length;
+    activate(list[next].id,next);
+  },7500);
+}
 }
 function renderProducts(){
   const grid=$('#productGrid');if(!grid)return;
@@ -76,7 +87,7 @@ function renderProducts(){
     const title=published?`<a href="${safe(href)}">${safe(p.name)}</a>`:`<button class="product-title-button" type="button" data-view="${safe(p.id)}">${safe(p.name)}</button>`;
     const categoryName=p.category||'Collection';
     const categoryLabel=publishedCategories.has(p.category)?`<a href="${safe(categoryPath(p.category))}"><small>${safe(categoryName)}</small></a>`:`<small>${safe(categoryName)}</small>`;
-    return `<article class="product-card"><${picTag} class="product-pic product-image-link" ${target} aria-label="Voir ${safe(p.name)}"><img src="${safe(productImage(p))}"${responsiveImage(p)} alt="${safe(p.name)}" loading="lazy" width="640" height="780">${p.badge?`<span class="product-badge">${safe(p.badge)}</span>`:''}<span class="product-add">VOIR LE PRODUIT ↗</span></${picTag}><div class="product-info">${categoryLabel}<h3>${title}</h3><b>${validPrice(p)?money(p.price):'Prix à confirmer'}</b>${validPrice({price:p.oldPrice})&&Number(p.oldPrice)>Number(p.price)?`<span class="old-price">${money(p.oldPrice)}</span>`:''}</div><button type="button" class="product-buy-now" data-buy="${safe(p.id)}" ${!liveCatalog||Number(p.stock)<1||!productOptionState(p).configured?'disabled':''}>PASSER LA COMMANDE ↗</button></article>`;
+    return `<article class="product-card"><${picTag} class="product-pic product-image-link" ${target} aria-label="Voir ${safe(p.name)}"><img src="${safe(productImage(p))}"${responsiveImage(p)} alt="${safe(p.name)}" loading="lazy" width="640" height="780">${p.badge?`<span class="product-badge">${safe(p.badge)}</span>`:''}<span class="product-add">VOIR LE PRODUIT ↗</span></${picTag}><div class="product-info">${categoryLabel}<h3>${title}</h3><b>${validPrice(p)?money(p.price):'Prix à confirmer'}</b>${validPrice({price:p.oldPrice})&&Number(p.oldPrice)>Number(p.price)?`<span class="old-price">${money(p.oldPrice)}</span>`:''}</div><div class="product-card-actions"><button type="button" class="product-add-cart" data-add-cart="${safe(p.id)}" ${!liveCatalog||Number(p.stock)<1||!productOptionState(p).configured?'disabled':''}>AJOUTER AU PANIER</button><button type="button" class="product-buy-now" data-buy="${safe(p.id)}" ${!liveCatalog||Number(p.stock)<1||!productOptionState(p).configured?'disabled':''}>COMMANDER DIRECT ↗</button></div></article>`;
   }).join('');
   $('#emptyProducts')?.classList.toggle('hidden',!!list.length);
 }
@@ -317,6 +328,7 @@ async function init(){
 
 if(configured)onAuthStateChanged(auth,u=>user=u);
 document.addEventListener('click',e=>{const button=e.target.closest('[data-view]');if(button&&!button.disabled)viewProduct(button.dataset.view)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-add-cart]');if(!b||b.disabled)return;viewProduct(b.dataset.addCart);$('#addProductForm [name="size"]')?.focus();});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-buy]');if(b&&!b.disabled)directCheckout(b.dataset.buy);});
 $('#filters')?.addEventListener('click',e=>{const b=e.target.closest('button[data-category]');if(!b)return;category=b.dataset.category;document.querySelectorAll('#filters [data-category]').forEach(x=>x.classList.toggle('active',x===b));renderProducts()});
 $('#sortSelect')?.addEventListener('change',e=>{sort=e.target.value;renderProducts()});
