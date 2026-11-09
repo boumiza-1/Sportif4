@@ -82,7 +82,7 @@ function imageMarkup(product, { priority = false, width = 640, className = '' } 
 
 function productCard(product) {
   const url = productPath(product.id);
-  return `<article class="product-card"><a class="product-pic" href="${escape(url)}">${imageMarkup(product)}${product.badge ? `<span class="product-badge">${escape(product.badge)}</span>` : ''}<span class="product-add">VOIR LE PRODUIT ↗</span></a><div class="product-info"><small>${escape(product.category)}</small><h3><a href="${escape(url)}">${escape(product.name)}</a></h3><b>${escape(money(product.price))}</b>${validPrice(product.oldPrice) && Number(product.oldPrice) > Number(product.price) ? `<span class="old-price">${escape(money(product.oldPrice))}</span>` : ''}</div></article>`;
+  return `<article class="product-card"><a class="product-pic" href="${escape(url)}">${imageMarkup(product)}${product.badge ? `<span class="product-badge">${escape(product.badge)}</span>` : ''}<span class="product-add">VOIR LE PRODUIT ↗</span></a><div class="product-info"><small>${escape(product.category)}</small><h3><a href="${escape(url)}">${escape(product.name)}</a></h3><b>${escape(money(product.price))}</b>${validPrice(product.oldPrice) && Number(product.oldPrice) > Number(product.price) ? `<span class="old-price">${escape(money(product.oldPrice))}</span>` : ''}</div><div class="product-card-actions"><button type="button" class="product-add-cart" data-add-cart="${escape(product.id)}">AJOUTER AU PANIER</button><button type="button" class="product-buy-now" data-buy="${escape(product.id)}">COMMANDER DIRECT ↗</button></div></article>`;
 }
 
 function replaceContents(html, id, contents, tag = 'div') {
