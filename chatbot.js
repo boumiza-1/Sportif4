@@ -61,7 +61,7 @@
   const button = (text, click, cls='') => { const el = node('button',cls,text); el.type='button'; if(typeof click==='function')el.addEventListener('click',click); return el; };
   const link = (text, href, cls) => { const el=node('a',cls,text); el.href=href; return el; };
   function formatPrice(n){return Number(n).toLocaleString('fr-TN',{maximumFractionDigits:3})+' DT';}
-  function productUrl(p){if(!p.id)return '/#catalogue'; return '/?product='+encodeURIComponent(String(p.id));}
+  function productUrl(p){if(!p.id)return '/#catalogue'; return state.publishedIds?.has(String(p.id))?'/produits/'+encodeURIComponent(String(p.id))+'/':'/?product='+encodeURIComponent(String(p.id));}
   function priceValid(p){return (typeof p.price==='number'||typeof p.price==='string')&&String(p.price).trim()!==''&&Number.isFinite(Number(p.price))&&Number(p.price)>=0;}
   function stock(p){if(p.stock==null||String(p.stock).trim()===''||!Number.isFinite(Number(p.stock)))return tr().unknownStock;return Number(p.stock)>0?tr().available:tr().out;}
   function productCard(p) {
@@ -331,7 +331,7 @@
       const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),5000);
       let response;
       try{response=await fetch('/catalogue.json',{signal:controller.signal,cache:'no-store'});}finally{clearTimeout(timeout);}
-      if(response.ok){const data=await response.json();if(Array.isArray(data.products)){state.catalog=data.products.filter(p=>p&&p.active!==false&&typeof p.name==='string');state.settings=data.settings||{};state.loaded=true;}}
+      if(response.ok){const data=await response.json();if(Array.isArray(data.products)){state.catalog=data.products.filter(p=>p&&p.active!==false&&typeof p.name==='string');state.publishedIds=new Set(state.catalog.map(p=>String(p.id)));state.settings=data.settings||{};state.loaded=true;}}
     } catch {}
     try {
       const {db}=await import('/firebase.js');
