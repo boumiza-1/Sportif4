@@ -40,6 +40,7 @@ jobs:
           node --test tests/product-links.test.mjs
           node --test tests/product-options.test.mjs
           node --test tests/ads-pixel-orders.test.mjs
+          node --test tests/storefront-regression.test.mjs
           node --check store.js
           node --check admin.js
           node --check meta-pixel.mjs
