@@ -39,6 +39,8 @@ jobs:
           node --test tests/chatbot-cart.test.cjs
           node --test tests/product-links.test.mjs
           node --test tests/product-options.test.mjs
+          node --test tests/product-display-order.test.mjs
+          node --check display-order.mjs
           node --test tests/ads-pixel-orders.test.mjs
           node --test tests/storefront-regression.test.mjs
           node --test tests/admin-push.test.mjs
