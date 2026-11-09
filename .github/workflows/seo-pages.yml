@@ -39,6 +39,10 @@ jobs:
           node --test tests/chatbot-cart.test.cjs
           node --test tests/product-links.test.mjs
           node --test tests/product-options.test.mjs
+          node --test tests/ads-pixel-orders.test.mjs
+          node --check store.js
+          node --check admin.js
+          node --check meta-pixel.mjs
           node --check admin.js
       - name: Generate pages from the public Firebase catalog
         run: node scripts/build-seo.mjs --out dist

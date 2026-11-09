@@ -11,3 +11,29 @@
 .product-form .admin-size-choice{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;border:1px solid #d4ddd0;border-radius:10px;padding:10px 13px;font-size:13px;font-weight:900;cursor:pointer}
 .product-form .admin-size-choice:has(input:checked){background:#eaf8c2;border-color:#90ad29;color:#26340b}
 .product-form .admin-size-choice input{width:17px;height:17px;accent-color:#789a10;margin:0}
+
+/* Visual order fulfillment details */
+.admin-order-overlay{position:fixed;inset:0;z-index:5000;background:rgba(10,14,12,.7);display:flex;align-items:center;justify-content:center;padding:15px;overflow-y:auto}
+.admin-order-dialog{width:min(720px,100%);max-height:calc(100dvh - 30px);overflow:auto;background:white;border-radius:18px;padding:24px;box-shadow:0 25px 75px #0006;color:#202420}
+.admin-order-title{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e3e9de;padding-bottom:14px}
+.admin-order-title small{font-weight:800;font-size:11px;color:#61715b}
+.admin-order-title h2{font-size:23px;margin:5px 0}
+.admin-order-title button{background:#edf4e8;border:0;border-radius:100%;width:38px;height:38px;cursor:pointer;font-size:18px}
+.admin-order-contact{background:#f6f9f2;border-radius:12px;padding:12px 16px;margin:15px 0;display:grid;gap:5px}
+.admin-order-contact p{margin:2px 0;font-size:13px;overflow-wrap:anywhere}
+.admin-order-items{display:grid;gap:10px}
+.admin-order-item{display:flex;align-items:center;gap:16px;border:1px solid #e4eadf;border-radius:12px;padding:10px;background:#fff}
+.admin-order-item img{width:100px;height:106px;object-fit:contain;background:#f6f7f4;border-radius:9px;flex:0 0 100px}
+.admin-order-item div{display:grid;gap:5px;min-width:0}
+.admin-order-item strong{font-size:15px}
+.admin-order-item small{color:#64705e;font-size:11px;overflow-wrap:anywhere}
+.admin-order-item p{margin:0;font-size:12px}
+.admin-order-item b{font-size:13px}
+.admin-order-total{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #e2eadc;padding:16px 0;margin-top:15px}
+.admin-order-total strong{font-size:18px}
+.admin-order-status{display:flex;gap:10px;align-items:end;flex-wrap:wrap;border-top:1px solid #edf0eb;padding-top:14px}
+.admin-order-status label{display:grid;gap:5px;flex:1;min-width:170px;font-size:12px}
+.admin-order-status select{width:100%;padding:11px;border:1px solid #d3dfce;border-radius:10px}
+.admin-order-status .error-text{width:100%}
+.admin-order-mini{width:45px;height:45px;object-fit:contain;border-radius:8px;background:#f4f7ed;vertical-align:middle;margin-right:8px}
+@media(max-width:520px){.admin-order-dialog{padding:15px}.admin-order-item img{width:76px;height:86px;flex-basis:76px}.admin-order-total{align-items:start;flex-direction:column}}

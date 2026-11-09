@@ -4,11 +4,13 @@ import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPass
 import {collection,getDocs,addDoc,doc,getDoc,serverTimestamp,query,where} from './database-api.js';
 import {productPath,categoryPath,imageUrl,imageSrcset} from './seo-shared.mjs';
 import {productOptionState,validateSelectedSize,tunisianMobile} from './product-options.mjs';
+import {MetaPixel} from './meta-pixel.mjs';
 const $=s=>document.querySelector(s);let products=[],settings={},user=null,category='all',search='',sort='new';
 category=document.body.dataset.category||'all';
 let liveCatalog=false;
 let publishedProducts=new Set(),publishedCategories=new Set();
 const productImage=(p,width=640)=>imageUrl(p.image,width)||imageFallback;
+const adProductUrl=id=>publishedProducts.has(id)?productPath(id):'/?product='+encodeURIComponent(String(id));
 const responsiveImage=(p)=>imageSrcset(p.image)?` srcset="${safe(imageSrcset(p.image))}" sizes="(max-width:680px) 46vw,(max-width:980px) 30vw,300px"`:'';
 function renderCategoryLinks(){
   const filters=$('#filters');if(!filters)return;
@@ -31,7 +33,7 @@ index=(next+list.length)%list.length;const p=list[index];
 image.style.backgroundImage='none';image.innerHTML='<img class="hero-product-png" src="'+String(productImage(p,960)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'" alt="'+String(p.name||'Produit Sportifano').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">';const productImg=image.querySelector('img');productImg.onerror=()=>{productImg.src=imageFallback;productImg.classList.add('is-fallback')};
 image.classList.remove('hero-image-enter');void image.offsetWidth;image.classList.add('hero-image-enter');
 name.textContent=p.name||'Produit Sportifano';category.textContent=p.category||'COLLECTION SPORTIFANO';description.textContent=p.description||'Découvrez ce produit et ses caractéristiques.';price.textContent=money(p.price);count.textContent=String(index+1).padStart(2,'0')+' / '+String(list.length).padStart(2,'0');
-details.onclick=()=>viewProduct(p.id);
+details.onclick=()=>{window.location.assign(adProductUrl(p.id));};
 }
 $('#heroProductPrev').onclick=()=>show(index-1);$('#heroProductNext').onclick=()=>show(index+1);
 show(0);
@@ -68,7 +70,7 @@ function renderProducts(){
   const list=products.filter(p=>p.active!==false&&(category==='all'||p.category===category)&&(`${p.name} ${p.category}`.toLowerCase().includes(search.toLowerCase())));
   if(sort==='asc')list.sort((a,b)=>a.price-b.price);if(sort==='desc')list.sort((a,b)=>b.price-a.price);
   grid.innerHTML=list.map(p=>{
-    const published=publishedProducts.has(p.id)&&document.body.dataset.seoPage!=='home',href=published?productPath(p.id):'/?product='+encodeURIComponent(p.id);
+    const href=adProductUrl(p.id);
     const picTag=published?'a':'button';
     const target=published?`href="${safe(href)}"`:`type="button" data-view="${safe(p.id)}"`;
     const title=published?`<a href="${safe(href)}">${safe(p.name)}</a>`:`<button class="product-title-button" type="button" data-view="${safe(p.id)}">${safe(p.name)}</button>`;
@@ -105,6 +107,7 @@ function refreshProductSchema(product){
 function renderProductPage(){
   const host=$('#seoProductContent');if(!host)return;
   const p=products.find(p=>p.id===document.body.dataset.productId&&p.active!==false);
+  if(p)MetaPixel.viewProduct(p);
   if(!p){
     if(!liveCatalog)return;
     host.innerHTML='<div class="seo-product-copy"><h1>Ce produit n’est plus disponible</h1><p>Découvrez les autres articles actuellement proposés par Sportifano.</p><a class="btn btn-dark" href="/#catalogue">Voir la collection</a></div>';
@@ -151,6 +154,7 @@ function validatedCartAdd({productId,size='',color='',quantity=1}={}){
   if(found)found.qty+=count;
   else cart.push({id:p.id,key,size:chosenSize,color:chosenColor,qty:count});
   saveCart();
+  MetaPixel.addToCart(p,count);
   window.dispatchEvent(new CustomEvent('sportifano:cart-updated',{detail:{count:cart.reduce((sum,x)=>sum+x.qty,0)}}));
   return {ok:true,product:{id:p.id,name:p.name,price:Number(p.price)},size:chosenSize,color:chosenColor,quantity:count};
 }
@@ -167,6 +171,7 @@ function productSizeControl(p,field='size'){
 function viewProduct(id){
   const p=products.find(x=>String(x.id)===String(id)&&x.active!==false);
   if(!p)return;
+  MetaPixel.viewProduct(p);
   if(!validPrice(p))return toast('Contactez la boutique pour confirmer le prix.');
   const opts=productOptionState(p),ready=liveCatalog&&opts.configured&&Number(p.stock)>0;
   modal(p.name,'<div class="product-detail"><img src="'+safe(productImage(p))+'" alt="'+safe(p.name)+'"><div><small>'+safe(p.category||'')+'</small><h3>'+safe(p.name)+'</h3><p class="detail-price">'+money(p.price)+'</p><p class="muted">'+safe(p.description||'Produit Sportifano')+'</p><p class="muted">Stock : '+Number(p.stock||0)+'</p><form id="addProductForm"><div class="detail-options">'+productSizeControl(p)+(p.colors?.length?'<label>Couleur<select name="color" required><option value="">Choisissez une couleur</option>'+p.colors.map(x=>'<option value="'+safe(x)+'">'+safe(x)+'</option>').join('')+'</select></label>':'')+'</div>'+(!opts.configured?'<p class="error-text">Tailles non renseignées. La boutique doit configurer ce produit avant toute commande.</p>':'')+'<button type="submit" class="btn btn-dark wide" '+(!ready?'disabled':'')+'>AJOUTER AU PANIER ↗</button><button type="button" class="btn btn-outline wide" id="buyFromDetails" '+(!ready?'disabled':'')+'>PASSER LA COMMANDE ↗</button></form></div></div>');
@@ -222,6 +227,7 @@ function openOrderForm({product=null,selected={},items=null}={}){
     '<button type="submit" class="btn btn-dark wide" id="placeOrderBtn">CONFIRMER MA COMMANDE ↗</button>'+
     '<p class="muted">Nous vous contacterons pour confirmer les détails et la disponibilité avant expédition.</p>'+
     '<p class="error-text" id="checkoutError" role="alert"></p></form>');
+  MetaPixel.initiateCheckout(direct?[{id:product.id,price:Number(product.price),quantity:1}]:validCart().map(item=>({id:item.id,price:Number(cartProduct(item.id)?.price||0),quantity:item.qty})));
   const form=$('#checkoutForm');
   if(direct){
     const sizeSel=form.elements.namedItem('size');
@@ -252,7 +258,7 @@ function openOrderForm({product=null,selected={},items=null}={}){
         if((current.colors||[]).length&&!(current.colors||[]).includes(entry.color))throw Error('Couleur non disponible pour : '+current.name);
         const quantity=Number(entry.qty);
         if(!Number.isSafeInteger(quantity)||quantity<1||Number(current.stock)<quantity)throw Error('Stock insuffisant pour : '+current.name);
-        orderItems.push({productId:current.id,name:String(current.name),price:Number(current.price),quantity,size:sz.size,color:entry.color||''});
+        orderItems.push({productId:current.id,name:String(current.name),image:productImage(current,640),price:Number(current.price),quantity,size:sz.size,color:entry.color||''});
       }
       let customer=user||auth.currentUser;
       if(!customer){
@@ -268,6 +274,7 @@ function openOrderForm({product=null,selected={},items=null}={}){
         subtotal:cost,deliveryFee:fee,total:cost+fee,
         status:'pending',paymentMethod:'cash_on_delivery',createdAt:serverTimestamp()
       });
+      MetaPixel.orderPlaced(orderItems.map(item=>({id:item.productId,price:item.price,quantity:item.quantity})),result.id);
       if(!direct){cart=[];saveCart();}
       modal('Commande reçue','<div class="order-success"><h3>Merci pour votre commande !</h3><p>Référence : <strong>#'+safe(result.id.slice(0,8))+'</strong></p><p>Votre commande a été enregistrée. Notre équipe vous contactera pour confirmer la livraison.</p><button type="button" id="finishOrder" class="btn btn-dark wide">CONTINUER MES ACHATS</button></div>');
       $('#finishOrder').onclick=close;toast('Commande enregistrée');
@@ -297,6 +304,7 @@ async function init(){
   const status=$('#catalogStatus');if(status&&!liveCatalog){status.hidden=false;status.textContent='Vous pouvez consulter les articles. Les prix et disponibilités doivent être vérifiés auprès de la boutique avant de commander.';}
   if(settings.instagram&&$('#socialLink')){try{const url=new URL(settings.instagram);if(url.protocol==='https:'){$('#socialLink').href=url.href;$('#socialLink').textContent='SUIVEZ-NOUS ↗';}}catch{}}
   if(settings.phone&&$('#footerPhone')){$('#footerPhone').href='tel:'+String(settings.phone).replace(/[^+0-9]/g,'');$('#footerPhone').textContent=settings.phone;}
+  MetaPixel.configure(Object.hasOwn(settings,'metaPixelId')?settings.metaPixelId:'1614291526710689');
   renderCategoryLinks();renderProducts();renderShowcase();renderCoverProducts();renderProductPage();renderCart();
   // Stable shopping deep link that works even when GitHub Pages serves only repository-root files.
   const requested=new URLSearchParams(location.search).get('product');
