@@ -37,3 +37,24 @@
 .admin-order-status .error-text{width:100%}
 .admin-order-mini{width:45px;height:45px;object-fit:contain;border-radius:8px;background:#f4f7ed;vertical-align:middle;margin-right:8px}
 @media(max-width:520px){.admin-order-dialog{padding:15px}.admin-order-item img{width:76px;height:86px;flex-basis:76px}.admin-order-total{align-items:start;flex-direction:column}}
+
+/* Installable Sportifano Admin — responsive home-screen controls and live order alert */
+.admin-top-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px}
+.admin-notice-badge{font-size:11px;font-weight:900;letter-spacing:.02em;background:#d6fa35;color:#1b2510;padding:7px 10px;border-radius:50px}
+.admin-notice-badge[hidden]{display:none}
+.admin-install-panel{display:flex;justify-content:space-between;align-items:center;gap:20px;background:linear-gradient(118deg,#151c18,#273b21);color:#f8fff2;border:1px solid #4e673d;border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:0 12px 28px #172e151c}
+.admin-install-panel h2{font:850 clamp(18px,2vw,24px)/1.25 Outfit,Arial,sans-serif;margin:0 0 8px}
+.admin-install-panel p{font-size:12px;line-height:1.65;margin:0 0 8px;max-width:650px;color:#e1ebd9}
+.admin-install-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+.admin-install-actions button{min-height:43px;padding:10px 14px;white-space:normal;border-radius:10px;cursor:pointer;font-size:11px;font-weight:800}
+.admin-install-actions .outline-btn{background:transparent;border:1px solid #a9c78f;color:#fff}
+.admin-install-actions .btn-dark{background:#d6fa35;border:1px solid #d6fa35;color:#16200d}
+.admin-install-actions button[hidden]{display:none}
+.admin-install-panel .admin-push-status{margin:0;color:#c8f393;font-size:11px;font-weight:700;overflow-wrap:anywhere}
+.admin-install-panel .admin-push-status.warning{color:#ffdf91}
+.admin-new-order{background:#eaffbb;border:1px solid #a9d34f;color:#263513;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.admin-new-order[hidden]{display:none}
+.admin-new-order strong{font:800 14px Outfit,Arial,sans-serif}
+.admin-new-order button{background:#1b2817;border:0;color:#fff;border-radius:9px;padding:11px 13px;font-size:11px;font-weight:900;cursor:pointer}
+@media(max-width:850px){.admin-install-panel{flex-direction:column;align-items:stretch}.admin-install-actions{justify-content:flex-start}}
+@media(max-width:520px){.admin-install-panel{padding:16px;border-radius:12px}.admin-install-actions{display:grid;grid-template-columns:1fr}.admin-new-order{flex-direction:column;align-items:stretch}.admin-new-order button{width:100%}}
