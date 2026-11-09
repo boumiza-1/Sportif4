@@ -304,7 +304,7 @@ async function init(){
   const status=$('#catalogStatus');if(status&&!liveCatalog){status.hidden=false;status.textContent='Vous pouvez consulter les articles. Les prix et disponibilités doivent être vérifiés auprès de la boutique avant de commander.';}
   if(settings.instagram&&$('#socialLink')){try{const url=new URL(settings.instagram);if(url.protocol==='https:'){$('#socialLink').href=url.href;$('#socialLink').textContent='SUIVEZ-NOUS ↗';}}catch{}}
   if(settings.phone&&$('#footerPhone')){$('#footerPhone').href='tel:'+String(settings.phone).replace(/[^+0-9]/g,'');$('#footerPhone').textContent=settings.phone;}
-  MetaPixel.configure(settings.metaPixelId||'1614291526710689');
+  MetaPixel.configure(Object.hasOwn(settings,'metaPixelId')?settings.metaPixelId:'1614291526710689');
   renderCategoryLinks();renderProducts();renderShowcase();renderCoverProducts();renderProductPage();renderCart();
   // Stable shopping deep link that works even when GitHub Pages serves only repository-root files.
   const requested=new URLSearchParams(location.search).get('product');
