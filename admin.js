@@ -4,6 +4,7 @@ import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www
 import {collection,doc,getDoc,getDocs,setDoc,addDoc,updateDoc,deleteDoc,serverTimestamp} from './database-api.js';
 import {uploadCloudinaryImage} from './cloudinary.js';
 import {SIZE_PRESETS,inferProductType,typeRequiresSize,cleanSizes,PRODUCT_TYPE_LABELS} from './product-options.mjs';
+import {wireAdminInstallControls,startAdminExperience,stopAdminExperience,updateAdminPushSettings} from './admin-notifications.mjs';
 const $=s=>document.querySelector(s);let user=null,products=[],orders=[],categories=[],settings={},tab='dashboard',isAdmin=false;
 const statuses={pending:'En attente',confirmed:'Confirmée',shipped:'Expédiée',delivered:'Livrée',cancelled:'Annulée'};
 function showPreview(el,url){if(!el)return;el.classList.toggle('hidden',!url);if(url)el.src=url;else el.removeAttribute('src')}
@@ -21,7 +22,7 @@ function renderDashboard(){$('#statProducts').textContent=products.length;$('#st
 function renderProducts(){let term=$('#adminProductSearch').value.toLowerCase(),list=products.filter(p=>(p.name||'').toLowerCase().includes(term));$('#adminProducts').innerHTML=table(['Produit','Catégorie','Prix','Stock','Visible','Actions'],list.map(p=>`<tr><td><img src="${safe(p.image||imageFallback)}" alt=""><b>${safe(p.name)}</b></td><td>${safe(p.category)}</td><td>${money(p.price)}</td><td>${Number(p.stock||0)}</td><td>${p.active!==false?'Oui':'Non'}</td><td><button type="button" data-copy-product="${safe(p.id)}" title="Copier le lien unique du produit">Copier lien Ads</button><button data-edit="${safe(p.id)}">Modifier</button><button data-delete="${safe(p.id)}">Supprimer</button></td></tr>`).join(''))}
 function renderOrders(){let status=$('#orderFilter').value,list=status==='all'?orders:orders.filter(o=>o.status===status);$('#adminOrders').innerHTML=table(['Commande','Client','Total','Statut','Action'],orderRows(list))}
 function renderCategories(){$('#adminCategories').innerHTML=[...new Set(['Homme','Femme','Chaussures','Accessoires',...categories.map(c=>c.name)])].map(n=>`<div class="category-row"><strong>${safe(n)}</strong>${categories.some(c=>c.name===n)?`<button class="action-btn" data-delete-category="${safe(categories.find(c=>c.name===n).id)}">Supprimer</button>`:'<span class="tiny">Catégorie de base</span>'}</div>`).join('')}
-function renderSettings(){$('#settingName').value=settings.name||'Sportifano';$('#settingPhone').value=settings.phone||'';$('#settingInstagram').value=settings.instagram||'';$('#settingMetaPixel').value=settings.metaPixelId??'1614291526710689';$('#settingDelivery').value=settings.deliveryFee??8;showPreview($('#coverPreview'),settings.coverImage||'')}
+function renderSettings(){$('#settingName').value=settings.name||'Sportifano';$('#settingPhone').value=settings.phone||'';$('#settingInstagram').value=settings.instagram||'';$('#settingMetaPixel').value=settings.metaPixelId??'1614291526710689';$('#settingPushVapidKey').value=settings.pushVapidKey||'';$('#settingDelivery').value=settings.deliveryFee??8;showPreview($('#coverPreview'),settings.coverImage||'')}
 function renderSizeChoices(selected=[]){
   const type=$('#pProductType').value,available=SIZE_PRESETS[type]||[];
   const host=$('#pSizeOptions'),legend=$('#pSizeLegend'),hint=$('#pSizeHint');
@@ -99,13 +100,44 @@ async function showOrder(id){
   };
 }
 $('#adminLogin').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';if(!configured)return $('#loginError').textContent='Configurez d’abord firebase.js';try{await signInWithEmailAndPassword(auth,$('#adminEmail').value,$('#adminPassword').value)}catch(err){$('#loginError').textContent=readableError(err)}};
-if(configured)onAuthStateChanged(auth,async u=>{user=u;isAdmin=false;if(!u){$('#loginScreen').classList.remove('hidden');$('#adminApp').classList.add('hidden');return}try{let d=await getDoc(doc(db,'admins',u.uid));if(!d.exists() || d.data()!=='admin'){await signOut(auth);$('#loginError').textContent='Accès refusé. Le champ admins/UID doit valoir admin dans Realtime Database.';return}isAdmin=true;$('#adminIdentity').textContent=u.email;$('#loginScreen').classList.add('hidden');$('#adminApp').classList.remove('hidden');await load()}catch(err){$('#loginError').textContent=readableError(err);await signOut(auth)}});
-$('#logoutBtn').onclick=()=>signOut(auth);$('#sideToggle').onclick=()=>$('.admin-sidebar').classList.toggle('open');document.querySelectorAll('#adminNav [data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showTab(b.dataset.goto));$('#refreshBtn').onclick=load;$('#newProductBtn').onclick=()=>openProduct();$('#adminModalClose').onclick=closeProduct;$('#productForm').onsubmit=saveProduct;$('#adminProductSearch').oninput=renderProducts;$('#orderFilter').onchange=renderOrders;
+wireAdminInstallControls();
+if(configured)onAuthStateChanged(auth,async u=>{
+  user=u;isAdmin=false;
+  if(!u){
+    await stopAdminExperience();
+    $('#loginScreen').classList.remove('hidden');$('#adminApp').classList.add('hidden');
+    return;
+  }
+  try{
+    let d=await getDoc(doc(db,'admins',u.uid));
+    if(!d.exists()||d.data()!=='admin'){
+      await signOut(auth);
+      $('#loginError').textContent='Accès refusé. Le champ admins/UID doit valoir admin dans Realtime Database.';
+      return;
+    }
+    isAdmin=true;
+    $('#adminIdentity').textContent=u.email||'Administrateur';
+    $('#loginScreen').classList.add('hidden');$('#adminApp').classList.remove('hidden');
+    await load();
+    await startAdminExperience({
+      userId:u.uid,settings,
+      onOrders:list=>{if(!isAdmin||auth.currentUser?.uid!==u.uid)return;orders=list;renderDashboard();renderOrders()},
+      onOpenOrder:orderId=>{showTab('orders');if(orders.some(o=>o.id===orderId))showOrder(orderId)}
+    });
+    const params=new URLSearchParams(location.search);
+    if(params.get('tab')==='orders')showTab('orders');
+    const target=params.get('order');
+    if(target&&/^[a-zA-Z0-9_-]{8,100}$/.test(target)&&orders.some(o=>o.id===target)){
+      showTab('orders');showOrder(target);
+    }
+  }catch(err){$('#loginError').textContent=readableError(err);await stopAdminExperience();await signOut(auth)}
+});
+$('#logoutBtn').onclick=async()=>{await stopAdminExperience({revokePush:true});await signOut(auth)};$('#sideToggle').onclick=()=>$('.admin-sidebar').classList.toggle('open');document.querySelectorAll('#adminNav [data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showTab(b.dataset.goto));$('#refreshBtn').onclick=load;$('#newProductBtn').onclick=()=>openProduct();$('#adminModalClose').onclick=closeProduct;$('#productForm').onsubmit=saveProduct;$('#adminProductSearch').oninput=renderProducts;$('#orderFilter').onchange=renderOrders;
 $('#adminProducts').onclick=async e=>{const copy=e.target.closest('[data-copy-product]');if(copy){const p=products.find(x=>x.id===copy.dataset.copyProduct);if(!p)return;const listing=await fetch('/catalogue.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);const published=Array.isArray(listing?.products)&&listing.products.some(x=>String(x.id)===String(p.id));const url='https://www.sportifano.com'+(published?'/produits/'+encodeURIComponent(String(p.id))+'/':'/?product='+encodeURIComponent(String(p.id)));try{await navigator.clipboard.writeText(url);toast('Lien publicité copié : '+url)}catch{prompt('Copiez le lien produit pour Facebook Ads :',url)}return;}let b=e.target.closest('[data-edit],[data-delete]');if(!b)return;if(b.dataset.edit)return openProduct(b.dataset.edit);if(!confirm('Supprimer définitivement ce produit ?'))return;try{await deleteDoc(doc(db,'products',b.dataset.delete));toast('Produit supprimé');await load()}catch(err){toast(readableError(err))}};
 function orderClick(e){let b=e.target.closest('[data-order]');if(b)showOrder(b.dataset.order)}$('#adminOrders').onclick=orderClick;$('#recentOrders').onclick=orderClick;
 $('#categoryForm').onsubmit=async e=>{e.preventDefault();let name=$('#categoryName').value.trim();if(!name)return;if(categories.some(c=>c.name.toLowerCase()===name.toLowerCase()))return toast('Catégorie déjà existante');try{await addDoc(collection(db,'categories'),{name,createdAt:serverTimestamp()});$('#categoryName').value='';toast('Catégorie ajoutée');await load()}catch(err){toast(readableError(err))}};
 $('#adminCategories').onclick=async e=>{let b=e.target.closest('[data-delete-category]');if(!b||!confirm('Supprimer cette catégorie ?'))return;try{await deleteDoc(doc(db,'categories',b.dataset.deleteCategory));await load()}catch(err){toast(readableError(err))}};
-$('#settingsForm').onsubmit=async e=>{e.preventDefault();let data={name:$('#settingName').value.trim(),phone:$('#settingPhone').value.trim(),instagram:$('#settingInstagram').value.trim(),metaPixelId:$('#settingMetaPixel').value.trim(),deliveryFee:Number($('#settingDelivery').value)||0,coverImage:settings.coverImage||'',updatedAt:serverTimestamp()};try{if(data.metaPixelId&&!/^\d{12,20}$/.test(data.metaPixelId))throw Error('Meta Pixel ID invalide. Utilisez uniquement 12 à 20 chiffres.');if($('#coverFile').files[0]){data.coverImage=await uploadImage($('#coverFile').files[0],'covers',$('#coverProgress'));}await setDoc(doc(db,'settings','store'),data);toast('Paramètres sauvegardés');await load()}catch(err){toast(readableError(err));$('#coverProgress').textContent='Erreur : '+(err.message||readableError(err))}};
+$('#settingsForm').onsubmit=async e=>{e.preventDefault();let data={name:$('#settingName').value.trim(),phone:$('#settingPhone').value.trim(),instagram:$('#settingInstagram').value.trim(),metaPixelId:$('#settingMetaPixel').value.trim(),pushVapidKey:$('#settingPushVapidKey').value.trim(),deliveryFee:Number($('#settingDelivery').value)||0,coverImage:settings.coverImage||'',updatedAt:serverTimestamp()};try{if(data.metaPixelId&&!/^\d{12,20}$/.test(data.metaPixelId))throw Error('Meta Pixel ID invalide. Utilisez uniquement 12 à 20 chiffres.');if($('#coverFile').files[0]){data.coverImage=await uploadImage($('#coverFile').files[0],'covers',$('#coverProgress'));}await setDoc(doc(db,'settings','store'),data);toast('Paramètres sauvegardés');await load();updateAdminPushSettings(settings)}catch(err){toast(readableError(err));$('#coverProgress').textContent='Erreur : '+(err.message||readableError(err))}};
 
 $('#importDemoBtn').onclick=async()=>{if(products.length&&!confirm('Ajouter les 8 articles de démonstration en plus des produits existants ?'))return;let b=$('#importDemoBtn');b.disabled=true;try{for(const p of demoProducts){let {id,...data}=p;await addDoc(collection(db,'products'),{...data,description:'Sportifano collection',createdAt:serverTimestamp()})}toast('8 produits de démonstration importés');await load()}catch(e){toast(readableError(e))}finally{b.disabled=false}};
 
