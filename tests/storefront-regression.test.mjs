@@ -34,3 +34,15 @@ test('cookie banner never exposes internal marketing technology label to shopper
  assert.match(s,/Accepter/);
  assert.match(s,/Refuser/);
 });
+
+test('product purchase controls use consistent icons and responsive full-width styling',()=>{
+ const css=src('style.css'),store=src('store.js'),builder=src('scripts/build-seo.mjs');
+ for(const source of [store,builder]){
+   assert.match(source,/<svg viewBox="0 0 24 24" aria-hidden="true">/);
+   assert.match(source,/<span>AJOUTER AU PANIER<\/span>/);
+   assert.match(source,/<span>COMMANDER DIRECT<\/span>/);
+ }
+ assert.match(css,/\.product-card \.product-card-actions\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/\.product-card \.product-card-actions button\{[\s\S]*?appearance:none/);
+ assert.match(css,/@media \(max-width:680px\)/);
+});
