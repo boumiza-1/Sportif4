@@ -38,6 +38,15 @@
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === 'admin')",
         ".write": "auth != null && auth.uid === $uid"
       }
+    },
+    "adminPushTokens": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && root.child('admins').child(auth.uid).val() === 'admin'",
+        "$deviceId": {
+          ".write": "auth != null && auth.uid === $uid && root.child('admins').child(auth.uid).val() === 'admin'",
+          ".validate": "newData.hasChildren(['token','updatedAt']) && newData.child('token').isString() && newData.child('token').val().length >= 30 && newData.child('token').val().length <= 4096 && newData.child('updatedAt').isNumber()"
+        }
+      }
     }
   }
 }
