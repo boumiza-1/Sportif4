@@ -41,6 +41,10 @@ jobs:
           node --test tests/product-options.test.mjs
           node --test tests/ads-pixel-orders.test.mjs
           node --test tests/storefront-regression.test.mjs
+          node --test tests/admin-push.test.mjs
+          node --check admin-notifications.mjs
+          node --check admin-sw.js
+          node --check functions/index.js
           node --check store.js
           node --check admin.js
           node --check meta-pixel.mjs
