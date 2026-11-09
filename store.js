@@ -4,6 +4,7 @@ import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPass
 import {collection,getDocs,addDoc,doc,getDoc,serverTimestamp,query,where} from './database-api.js';
 import {productPath,categoryPath,imageUrl,imageSrcset} from './seo-shared.mjs';
 import {productOptionState,validateSelectedSize,tunisianMobile} from './product-options.mjs';
+import {sortProducts} from './display-order.mjs';
 import {MetaPixel} from './meta-pixel.mjs';
 const $=s=>document.querySelector(s);let products=[],settings={},user=null,category='all',search='',sort='new';
 category=document.body.dataset.category||'all';
@@ -24,7 +25,7 @@ const close=()=>{$('#modal').classList.add('hidden');$('#cartDrawer').classList.
 const cartProduct=id=>products.find(p=>p.id===id);const validCart=()=>cart.filter(i=>cartProduct(i.id));
 function renderCoverProducts(){
 const hero=document.querySelector('.hero-photo');if(!hero)return;
-const list=products.filter(p=>p.active!==false&&p.image);
+const list=sortProducts(products.filter(p=>p.active!==false&&p.image));
 if(!list.length){hero.classList.add('no-live-product');return}
 let index=0;
 const image=$('#heroProductImage'),name=$('#heroProductName'),category=$('#heroProductCategory'),description=$('#heroProductDescription'),price=$('#heroProductPrice'),count=$('#heroProductCount'),details=$('#heroProductDetails');
@@ -44,7 +45,7 @@ if(list.length>1&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').match
 }
 function renderShowcase(){
 const host=$('#showcaseList');if(!host)return;
-const list=products.filter(p=>p.active!==false);
+const list=sortProducts(products.filter(p=>p.active!==false));
 if(!list.length){host.innerHTML='<p class="muted">Aucun produit disponible pour le moment.</p>';return}
 host.innerHTML=list.map((p,i)=>`<button type="button" class="showcase-choice${i===0?' is-active':''}" data-showcase="${safe(p.id)}" aria-pressed="${i===0?'true':'false'}"><img src="${safe(productImage(p))}" alt="" loading="lazy" onerror="this.src='${imageFallback}'"><span class="showcase-choice-copy"><span class="showcase-choice-name">${safe(p.name)}</span><span class="showcase-choice-price">${money(p.price)}</span></span><span class="showcase-choice-num">${String(i+1).padStart(2,'0')}</span></button>`).join('');
 const stageImage=$('#showcaseImage'),stageName=$('#showcaseName'),stageCategory=$('#showcaseCategory'),stageDescription=$('#showcaseDescription'),stagePrice=$('#showcasePrice'),stageIndex=$('#showcaseIndex'),stageView=$('#showcaseView');
@@ -78,7 +79,7 @@ if(list.length>1&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').match
 }
 function renderProducts(){
   const grid=$('#productGrid');if(!grid)return;
-  const list=products.filter(p=>p.active!==false&&(category==='all'||p.category===category)&&(`${p.name} ${p.category}`.toLowerCase().includes(search.toLowerCase())));
+  const list=sortProducts(products.filter(p=>p.active!==false&&(category==='all'||p.category===category)&&(`${p.name} ${p.category}`.toLowerCase().includes(search.toLowerCase()))));
   if(sort==='asc')list.sort((a,b)=>a.price-b.price);if(sort==='desc')list.sort((a,b)=>b.price-a.price);
   grid.innerHTML=list.map(p=>{
     const published=publishedProducts.has(p.id);
@@ -302,14 +303,14 @@ async function init(){
   const snapshotPromise=(async()=>{try{const response=await fetch('/catalogue.json',{signal:AbortSignal.timeout(5000)});if(!response.ok)return null;const data=await response.json();return Array.isArray(data.products)?data:null}catch{return null}})();
   if(configured){
     const [result,config]=await Promise.allSettled([timeout(getDocs(collection(db,'products'))),timeout(getDoc(doc(db,'settings','store')))]);
-    if(result.status==='fulfilled'){products=result.value.docs.map(d=>({...d.data(),id:d.id})).filter(p=>p.active!==false&&typeof p.name==='string');liveCatalog=true;}
+    if(result.status==='fulfilled'){products=sortProducts(result.value.docs.map(d=>({...d.data(),id:d.id})).filter(p=>p.active!==false&&typeof p.name==='string'));liveCatalog=true;}
     if(config.status==='fulfilled'&&config.value.exists())settings=config.value.data();
   }
   const snapshot=await snapshotPromise;
   if(snapshot){
     publishedProducts=new Set(snapshot.products.map(p=>p.id));
     publishedCategories=new Set(snapshot.products.map(p=>p.category).filter(Boolean));
-    if(!liveCatalog){products=snapshot.products;settings={...snapshot.settings,...settings};}
+    if(!liveCatalog){products=sortProducts(snapshot.products);settings={...snapshot.settings,...settings};}
   }
 
   document.body.dataset.catalogReady=liveCatalog?'live':products.length?'snapshot':'unavailable';

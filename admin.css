@@ -58,3 +58,8 @@
 .admin-new-order button{background:#1b2817;border:0;color:#fff;border-radius:9px;padding:11px 13px;font-size:11px;font-weight:900;cursor:pointer}
 @media(max-width:850px){.admin-install-panel{flex-direction:column;align-items:stretch}.admin-install-actions{justify-content:flex-start}}
 @media(max-width:520px){.admin-install-panel{padding:16px;border-radius:12px}.admin-install-actions{display:grid;grid-template-columns:1fr}.admin-new-order{flex-direction:column;align-items:stretch}.admin-new-order button{width:100%}}
+
+/* Product display priorities */
+.admin-product-position{font:900 16px Outfit,Arial,sans-serif;color:#59720b;text-align:center;min-width:54px}
+.product-form #pDisplayOrder{font-weight:850;border:2px solid #cbdba1;border-radius:9px}
+.product-form label:has(#pDisplayOrder)>small{color:#62705b;line-height:1.45;font-size:11px;font-weight:500}

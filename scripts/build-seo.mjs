@@ -2,11 +2,12 @@ import { readFile, writeFile, mkdir, readdir, rm, lstat, copyFile } from 'node:f
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { productPath, categoryPath, imageUrl, imageSrcset } from '../seo-shared.mjs';
+import { sortProducts, displayOrder } from '../display-order.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MARKER = '.sportifano-seo-output';
-const PUBLIC_FIELDS = ['name', 'category', 'price', 'oldPrice', 'stock', 'active', 'badge', 'description', 'image', 'sizes', 'colors', 'createdAt', 'updatedAt'];
-const RUNTIME_FILES = ['style.css', 'chatbot.css', 'chatbot-nlp.js', 'chatbot.js', 'store.js', 'meta-pixel.mjs', 'product-options.mjs', 'common.js', 'firebase.js', 'database-api.js', 'admin.html', 'admin.js', 'admin.css', 'admin-notifications.mjs', 'admin-manifest.webmanifest', 'admin-icon.svg', 'admin-icon-192.png', 'admin-icon-512.png', 'admin-sw.js', 'cloudinary.js', 'seo-shared.mjs', 'CNAME'];
+const PUBLIC_FIELDS = ['name', 'category', 'price', 'oldPrice', 'stock', 'active', 'badge', 'description', 'image', 'sizes', 'colors', 'displayOrder', 'createdAt', 'updatedAt'];
+const RUNTIME_FILES = ['style.css', 'chatbot.css', 'chatbot-nlp.js', 'chatbot.js', 'store.js', 'meta-pixel.mjs', 'product-options.mjs', 'display-order.mjs', 'common.js', 'firebase.js', 'database-api.js', 'admin.html', 'admin.js', 'admin.css', 'admin-notifications.mjs', 'admin-manifest.webmanifest', 'admin-icon.svg', 'admin-icon-192.png', 'admin-icon-512.png', 'admin-sw.js', 'cloudinary.js', 'seo-shared.mjs', 'CNAME'];
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const compact = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const clip = (value, max = 160) => compact(value).length > max ? compact(value).slice(0, max - 1).trimEnd() + '…' : compact(value);
@@ -43,7 +44,7 @@ function normalizeData(raw) {
     product.id = id; // A stored id field must never override the Firebase key.
     products.push(product);
   }
-  products.sort((a, b) => a.id.localeCompare(b.id));
+  const orderedProducts=sortProducts(products);
   const rawSettings = raw.settings ?? raw['settings/store'] ?? {};
   if (rawSettings !== null && (typeof rawSettings !== 'object' || Array.isArray(rawSettings))) throw new Error('Les paramètres de boutique doivent être un objet.');
   const settings = {};
@@ -51,7 +52,7 @@ function normalizeData(raw) {
     if (typeof rawSettings?.[field] === 'string') settings[field] = rawSettings[field].trim();
   }
   if (validPrice(rawSettings?.deliveryFee)) settings.deliveryFee = Number(rawSettings.deliveryFee);
-  return { products, settings };
+  return { products:orderedProducts, settings };
 }
 
 export async function fetchPublicCatalog(rootDir = ROOT) {
