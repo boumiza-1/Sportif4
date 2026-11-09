@@ -1,0 +1,20 @@
+{
+  "name": "Sportifano Administration",
+  "short_name": "Sportifano Admin",
+  "description": "Gestion des commandes et du catalogue Sportifano",
+  "id": "/admin.html",
+  "start_url": "/admin.html?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#121817",
+  "theme_color": "#d6fa35",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/admin-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
