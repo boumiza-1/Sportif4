@@ -37,7 +37,7 @@ function newOrderMessage(orderId){
     $('#newOrderAlertText').textContent='Nouvelle commande reçue · #'+orderId.slice(0,8);
     $('#newOrderOpenBtn').onclick=()=>{alert.hidden=true;currentOrderHandler?.(orderId)};
   }
-  const n=$('#newOrdersBadge');if(n){n.hidden=false;n.textContent='● Nouvelle commande'}
+  const n=$('#newOrdersBadge');if(n){n.hidden=false;n.textContent='● Nouvelle commande';n.onclick=()=>currentOrderHandler?.(orderId)}
 }
 async function registerWorker(){
   if(!('serviceWorker' in navigator))throw Error('Ce navigateur ne permet pas les applications Web.');
