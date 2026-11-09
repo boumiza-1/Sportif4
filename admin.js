@@ -51,7 +51,53 @@ function openProduct(id){
 }
 function closeProduct(){$('#adminModal').classList.add('hidden')}
 async function saveProduct(e){e.preventDefault();if(!isAdmin)return;let btn=$('#saveProductBtn');btn.disabled=true;btn.textContent='ENREGISTREMENT...';try{let id=$('#productId').value,photo=$('#pFile').files[0],image=$('#pImage').value.trim();if(photo){if(photo.size>5*1024*1024)throw Error('Image trop lourde (max 5 Mo)');if(!['image/jpeg','image/png','image/webp'].includes(photo.type))throw Error('Format image non pris en charge');$('#uploadProgress').textContent='Upload en cours...';image=await uploadImage(photo,'products',$('#uploadProgress'));$('#pImage').value=image;$('#pFile').value='';}let data={name:$('#pName').value.trim(),category:$('#pCategory').value,price:Number($('#pPrice').value),oldPrice:Number($('#pOldPrice').value)||0,stock:Number($('#pStock').value),badge:$('#pBadge').value.trim(),productType:$('#pProductType').value,sizes:cleanSizes([...document.querySelectorAll('#pSizeOptions input:checked')].map(x=>x.value),$('#pProductType').value),colors:$('#pColors').value.split(',').map(x=>x.trim()).filter(Boolean),description:$('#pDescription').value.trim(),image,active:$('#pActive').checked,updatedAt:serverTimestamp()};if(!data.name||!Number.isFinite(data.price)||data.price<0||data.stock<0)throw Error('Données produit invalides');if(!PRODUCT_TYPE_LABELS[data.productType])throw Error('Choisissez un type de produit valide.');if(typeRequiresSize(data.productType)&&!data.sizes.length)throw Error('Cochez au moins une taille ou pointure disponible.');$('#uploadProgress').textContent='Enregistrement dans Firebase Realtime Database...';if(id)await updateDoc(doc(db,'products',id),data);else await addDoc(collection(db,'products'),{...data,createdAt:serverTimestamp()});closeProduct();toast('Produit enregistré');await load()}catch(err){const message=String(err?.message||readableError(err));const hint=/permission.denied|permission_denied|PERMISSION_DENIED/i.test(message)?' — Vérifiez admins/UID = admin et les règles products/.write dans Realtime Database.':'';toast('Sauvegarde impossible : '+message+hint);$('#uploadProgress').textContent='Erreur Firebase : '+message+hint;}finally{btn.disabled=false;btn.textContent='ENREGISTRER LE PRODUIT'}}
-async function showOrder(id){let o=orders.find(x=>x.id===id);if(!o)return;let items=(o.items||[]).map(i=>`${safe(i.name)} × ${Number(i.quantity)} (${money(i.price)}) ${safe([i.size,i.color].filter(Boolean).join('/'))}`).join('<br>');let next=prompt(`Commande #${id.slice(0,8)}\nClient : ${o.name}\nTéléphone : ${o.phone}\nAdresse : ${o.city}, ${o.address}\nNote : ${o.note||'-'}\nTotal : ${money(o.total)}\n\nPour changer le statut, saisir : pending / confirmed / shipped / delivered / cancelled\n\nArticles : ${(o.items||[]).map(i=>i.name+' x'+i.quantity).join(', ')}`,o.status||'pending');if(next===null)return;next=next.trim().toLowerCase();if(!statuses[next])return toast('Statut invalide');try{await updateDoc(doc(db,'orders',id),{status:next,updatedAt:serverTimestamp()});toast('Statut de la commande mis à jour');await load()}catch(err){toast(readableError(err))}}
+function orderLineItem(i){
+  const product=products.find(p=>String(p.id)===String(i.productId||i.id));
+  // Keep the photo captured at checkout even when the catalog product changes.
+  const image=i.image||product?.image||imageFallback;
+  const photo=typeof image==='string'&&(/^(https:\/\/|\/assets\/)/.test(image))?image:imageFallback;
+  const size=String(i.size||'').trim(),color=String(i.color||'').trim();
+  const quantity=Number(i.quantity||i.qty||1);
+  return '<article class="admin-order-item">'+
+    '<img src="'+safe(photo)+'" loading="lazy" alt="Photo de '+safe(i.name||product?.name||'produit')+'" onerror="this.onerror=null;this.src=\\''+safe(imageFallback)+'\\'">'+
+    '<div><strong>'+safe(i.name||product?.name||'Produit Sportifano')+'</strong>'+
+    '<small>Réf. '+safe(String(i.productId||i.id||'—'))+'</small>'+
+    '<p>'+safe(size?'Pointure / taille : '+size:'Sans taille')+(color?' · '+safe('Couleur : '+color):'')+'</p>'+
+    '<b>Quantité : '+(Number.isSafeInteger(quantity)&&quantity>0?quantity:1)+' · '+money(i.price||0)+'</b></div></article>';
+}
+async function showOrder(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const sheet=document.createElement('div');sheet.className='admin-order-overlay';sheet.setAttribute('role','dialog');
+  sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','adminOrderTitle');
+  sheet.innerHTML='<section class="admin-order-dialog">'+
+    '<div class="admin-order-title"><div><small>COMMANDE SPORTIFANO</small><h2 id="adminOrderTitle">Commande #'+safe(id.slice(0,8))+'</h2></div><button type="button" data-close-order aria-label="Fermer les détails">✕</button></div>'+
+    '<div class="admin-order-contact"><p><b>Client :</b> '+safe(o.name||'—')+'</p><p><b>Téléphone :</b> <a href="tel:'+safe(String(o.phone||'').replace(/[^+\d]/g,''))+'">'+safe(o.phone||'—')+'</a></p>'+
+    '<p><b>Livraison :</b> '+safe([o.city,o.address].filter(Boolean).join(', ')||'—')+'</p>'+
+    '<p><b>Note :</b> '+safe(o.note||'—')+'</p></div>'+
+    '<h3>Produits commandés</h3><div class="admin-order-items">'+
+    (Array.isArray(o.items)&&o.items.length?o.items.map(orderLineItem).join(''):'<p>Aucun détail produit disponible.</p>')+
+    '</div><div class="admin-order-total"><strong>Total : '+money(o.total)+'</strong><span>Paiement à la livraison</span></div>'+
+    '<form class="admin-order-status"><label>Statut de la commande<select name="status">'+
+    Object.entries(statuses).map(([value,label])=>'<option value="'+safe(value)+'" '+(o.status===value?'selected':'')+'>'+safe(label)+'</option>').join('')+
+    '</select></label><button type="submit" class="btn btn-dark">Enregistrer le statut</button><p role="alert" class="error-text"></p></form></section>';
+  const close=()=>{sheet.remove();document.removeEventListener('keydown',escapeKey);};
+  const escapeKey=e=>{if(e.key==='Escape')close()};
+  sheet.querySelector('[data-close-order]').onclick=close;
+  sheet.addEventListener('click',e=>{if(e.target===sheet)close()});
+  document.addEventListener('keydown',escapeKey);
+  document.body.append(sheet);sheet.querySelector('[data-close-order]').focus();
+  sheet.querySelector('form').onsubmit=async e=>{
+    e.preventDefault();
+    const status=String(new FormData(e.currentTarget).get('status')||'');
+    if(!Object.hasOwn(statuses,status))return;
+    const btn=e.currentTarget.querySelector('button[type="submit"]'),err=e.currentTarget.querySelector('[role="alert"]');
+    btn.disabled=true;err.textContent='';
+    try{
+      await updateDoc(doc(db,'orders',id),{status,updatedAt:serverTimestamp()});
+      close();toast('Statut de la commande mis à jour');await load();
+    }catch(error){err.textContent=readableError(error);btn.disabled=false;}
+  };
+}
 $('#adminLogin').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';if(!configured)return $('#loginError').textContent='Configurez d’abord firebase.js';try{await signInWithEmailAndPassword(auth,$('#adminEmail').value,$('#adminPassword').value)}catch(err){$('#loginError').textContent=readableError(err)}};
 if(configured)onAuthStateChanged(auth,async u=>{user=u;isAdmin=false;if(!u){$('#loginScreen').classList.remove('hidden');$('#adminApp').classList.add('hidden');return}try{let d=await getDoc(doc(db,'admins',u.uid));if(!d.exists() || d.data()!=='admin'){await signOut(auth);$('#loginError').textContent='Accès refusé. Le champ admins/UID doit valoir admin dans Realtime Database.';return}isAdmin=true;$('#adminIdentity').textContent=u.email;$('#loginScreen').classList.add('hidden');$('#adminApp').classList.remove('hidden');await load()}catch(err){$('#loginError').textContent=readableError(err);await signOut(auth)}});
 $('#logoutBtn').onclick=()=>signOut(auth);$('#sideToggle').onclick=()=>$('.admin-sidebar').classList.toggle('open');document.querySelectorAll('#adminNav [data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showTab(b.dataset.goto));$('#refreshBtn').onclick=load;$('#newProductBtn').onclick=()=>openProduct();$('#adminModalClose').onclick=closeProduct;$('#productForm').onsubmit=saveProduct;$('#adminProductSearch').oninput=renderProducts;$('#orderFilter').onchange=renderOrders;
