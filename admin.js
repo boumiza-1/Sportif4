@@ -153,13 +153,40 @@ $('#removeCoverBtn').addEventListener('click',async()=>{if(!confirm('Revenir à 
 
 const tunisInput=ms=>new Date(ms+3600000).toISOString().slice(0,16);
 const tunisTime=value=>Date.parse(value+':00+01:00');
+function promoPhoto(p){
+  const img=document.createElement('img');img.alt=p.name||'Produit';img.loading='lazy';
+  try{const url=new URL(p.image||'',location.origin);img.src=p.image&&['https:','http:'].includes(url.protocol)?url.href:imageFallback;}catch{img.src=imageFallback;}
+  img.onerror=()=>{img.onerror=null;img.src=imageFallback;};return img;
+}
+function renderPromoPicker(){
+  const picker=$('#promoPicker'),grid=$('#promoProductGrid'),selected=$('#promoTarget').value,scope=$('#promoScope').value;
+  picker.classList.toggle('hidden',scope!=='product');grid.replaceChildren();$('#promoSelected').replaceChildren();
+  if(scope!=='product')return;
+  const term=$('#promoSearch').value.trim().toLowerCase();
+  for(const p of products.filter(p=>[p.name,p.category,p.id].join(' ').toLowerCase().includes(term))){
+    const b=document.createElement('button');b.type='button';b.className='promo-product-choice'+(p.id===selected?' is-selected':'');b.setAttribute('aria-pressed',String(p.id===selected));
+    const name=document.createElement('strong');name.textContent=p.name;
+    const meta=document.createElement('small');meta.textContent=(p.category||'')+' · Réf. '+p.id;
+    const price=document.createElement('b');price.textContent=money(p.price);
+    b.append(promoPhoto(p),name,price,meta);
+    b.onclick=()=>{$('#promoTarget').value=p.id;renderPromoPicker();previewPromotion();};grid.append(b);
+  }
+  if(!grid.children.length)grid.textContent='Aucun produit trouvé.';
+  const p=products.find(p=>p.id===selected);
+  if(p){const row=document.createElement('div');row.className='promo-selected-row';const label=document.createElement('div');label.textContent='Produit sélectionné : '+p.name+' · '+money(p.price)+' · Réf. '+p.id;row.append(promoPhoto(p),label);$('#promoSelected').append(row);}
+  else $('#promoSelected').textContent='Sélectionnez un produit avant de publier.';
+}
+$('#promoSearch').addEventListener('input',renderPromoPicker);
+$('#promoTarget').addEventListener('change',()=>{renderPromoPicker();previewPromotion();});
 function promoTargets(selected=''){
   const scope=$('#promoScope').value,el=$('#promoTarget');
   $('#promoTargetLabel').classList.toggle('hidden',scope==='all');
   el.replaceChildren();
   const list=scope==='category'?[...new Set(products.map(p=>p.category).filter(Boolean))].map(x=>[x,x]):scope==='product'?products.map(p=>[p.id,p.name]):[];
-  for(const [value,label] of list){const option=new Option(label,value);el.add(option);}
+  if(scope==='product')el.add(new Option('Choisir un produit…',''));
+  for(const [value,label] of list){const option=new Option(scope==='product'?label+' · '+money(products.find(p=>p.id===value)?.price)+' · '+value:label,value);el.add(option);}
   if(list.some(([v])=>v===selected))el.value=selected;
+  $('#promoSearch').value='';renderPromoPicker();
 }
 function promoDraft(){
   return normalizePromotion({enabled:true,title:$('#promoTitle').value,scope:$('#promoScope').value,target:$('#promoTarget').value,type:$('#promoType').value,value:Number($('#promoValue').value),start:tunisTime($('#promoStart').value),end:tunisTime($('#promoEnd').value),popup:$('#promoPopup').checked,countdown:$('#promoCountdown').checked});
@@ -168,7 +195,9 @@ function previewPromotion(){
   const p=promoDraft(),box=$('#promoPreview');
   if(!p){box.textContent='Vérifiez la réduction, le produit et les dates.';return;}
   const matches=products.map(item=>({item,offer:applyPromotion(item,p,p.start)})).filter(x=>x.offer.promotionApplied);
-  box.innerHTML='<h3>'+safe(p.title)+'</h3><p>'+matches.length+' produit(s) concernés — aperçu privé, aucun changement public.</p>'+matches.slice(0,8).map(({item,offer})=>'<p>'+safe(item.name)+' : <del>'+money(item.price)+'</del> → <strong>'+money(offer.price)+'</strong> '+safe(offer.badge)+'</p>').join('')+(p.popup?'<p>Notification : '+safe(p.title)+'</p>':'')+(p.countdown?'<p>Fin : '+new Date(p.end).toLocaleString('fr-TN',{timeZone:'Africa/Tunis'})+'</p>':'');
+  box.innerHTML='<h3>'+safe(p.title)+'</h3><p>'+matches.length+' produit(s) concernés — aperçu privé, aucun changement public.</p>'+'<div id="promoPreviewItems"></div>'+(p.popup?'<p>Notification : '+safe(p.title)+'</p>':'')+(p.countdown?'<p>Fin : '+new Date(p.end).toLocaleString('fr-TN',{timeZone:'Africa/Tunis'})+'</p>':'');
+  const list=box.querySelector('#promoPreviewItems');
+  for(const {item,offer} of matches.slice(0,8)){const row=document.createElement('div');row.className='promo-selected-row';const copy=document.createElement('div');copy.innerHTML='<strong>'+safe(item.name)+'</strong><p><del>'+money(item.price)+'</del> → <b>'+money(offer.price)+'</b> '+safe(offer.badge)+'</p>';row.append(promoPhoto(item),copy);list.append(row);}
 }
 function renderPromotions(){
   const p=normalizePromotion(settings.promotion);
