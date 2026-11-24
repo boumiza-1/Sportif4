@@ -3,7 +3,7 @@ import {demoProducts,money,safe,imageFallback,toast,readableError} from './commo
 import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInAnonymously,signOut,updateProfile} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {collection,getDocs,addDoc,doc,getDoc,serverTimestamp,query,where} from './database-api.js';
 import {productPath,categoryPath,imageUrl,imageSrcset} from './seo-shared.mjs';
-import {productOptionState,validateSelectedSize,tunisianMobile} from './product-options.mjs';
+import {productOptionState,validateSelectedSize,tunisianMobile,withoutCleatColors,isCleat} from './product-options.mjs';
 import {sortProducts} from './display-order.mjs';
 import {MetaPixel} from './meta-pixel.mjs';
 const $=s=>document.querySelector(s);let products=[],settings={},user=null,category='all',search='',sort='new';
@@ -22,7 +22,7 @@ const saved=()=>{try{return JSON.parse(localStorage.getItem('sportifano_cart')||
 let cart=saved();const saveCart=()=>{localStorage.setItem('sportifano_cart',JSON.stringify(cart));renderCart()};
 const modal=(title,html)=>{$('#modalTitle').textContent=title;$('#modalBody').innerHTML=`<div class="modal-body">${html}</div>`;$('#modal').classList.remove('hidden');$('#shade').classList.remove('hidden')};
 const close=()=>{$('#modal').classList.add('hidden');$('#cartDrawer').classList.add('hidden');$('#shade').classList.add('hidden')};
-const cartProduct=id=>products.find(p=>p.id===id);const validCart=()=>cart.filter(i=>cartProduct(i.id));
+const cartProduct=id=>products.find(p=>p.id===id);const validCart=()=>cart.filter(i=>cartProduct(i.id)).map(i=>isCleat(cartProduct(i.id))?{...i,color:''}:i);
 function renderCoverProducts(){
 const hero=document.querySelector('.hero-photo');if(!hero)return;
 const list=sortProducts(products.filter(p=>p.active!==false&&p.image));
@@ -159,7 +159,7 @@ function validatedCartAdd({productId,size='',color='',quantity=1}={}){
   const sizeCheck=validateSelectedSize(p,size);if(!sizeCheck.ok)return {ok:false,code:sizeCheck.code,sizes};const chosenSize=sizeCheck.size;
   const chosenColor=colors.length?match(color,colors)||(!color&&colors.length===1?colors[0]:''):'';
   if((sizes.length&&!chosenSize)||(size&&!sizes.length))return {ok:false,code:'size_unavailable',sizes};
-  if((colors.length&&!chosenColor)||(color&&!colors.length))return {ok:false,code:'color_unavailable',colors};
+  if((colors.length&&!chosenColor)||(color&&!colors.length&&!isCleat(p)))return {ok:false,code:'color_unavailable',colors};
   const inCart=cart.filter(x=>x.id===p.id).reduce((sum,x)=>sum+Number(x.qty||0),0);
   if(inCart+count>available)return {ok:false,code:'insufficient_stock',remaining:Math.max(0,available-inCart)};
   const key=[p.id,chosenSize,chosenColor].join('|');
@@ -264,14 +264,14 @@ function openOrderForm({product=null,selected={},items=null}={}){
       for(const entry of requested){
         const snap=await getDoc(doc(db,'products',entry.id));
         if(!snap.exists())throw Error('Produit indisponible. Veuillez actualiser la boutique.');
-        const current={...snap.data(),id:entry.id};
+        const current=withoutCleatColors({...snap.data(),id:entry.id});
         if(current.active===false||!validPrice(current))throw Error('Article indisponible.');
         const sz=validateSelectedSize(current,entry.size);
         if(!sz.ok)throw Error('Taille ou pointure non disponible pour : '+current.name);
         if((current.colors||[]).length&&!(current.colors||[]).includes(entry.color))throw Error('Couleur non disponible pour : '+current.name);
         const quantity=Number(entry.qty);
         if(!Number.isSafeInteger(quantity)||quantity<1||Number(current.stock)<quantity)throw Error('Stock insuffisant pour : '+current.name);
-        orderItems.push({productId:current.id,name:String(current.name),image:productImage(current,640),price:Number(current.price),quantity,size:sz.size,color:entry.color||''});
+        orderItems.push({productId:current.id,name:String(current.name),image:productImage(current,640),price:Number(current.price),quantity,size:sz.size,color:isCleat(current)?'':entry.color||''});
       }
       let customer=user||auth.currentUser;
       if(!customer){
@@ -313,6 +313,7 @@ async function init(){
     if(!liveCatalog){products=sortProducts(snapshot.products);settings={...snapshot.settings,...settings};}
   }
 
+  products=products.map(withoutCleatColors);
   document.body.dataset.catalogReady=liveCatalog?'live':products.length?'snapshot':'unavailable';
   const status=$('#catalogStatus');if(status&&!liveCatalog){status.hidden=false;status.textContent='Vous pouvez consulter les articles. Les prix et disponibilités doivent être vérifiés auprès de la boutique avant de commander.';}
   if(settings.instagram&&$('#socialLink')){try{const url=new URL(settings.instagram);if(url.protocol==='https:'){$('#socialLink').href=url.href;$('#socialLink').textContent='SUIVEZ-NOUS ↗';}}catch{}}
