@@ -21,6 +21,12 @@ export function inferProductType(product={}){
   if(sizes.length&&sizes.every(s=>SIZE_PRESETS.clothing.includes(s.toUpperCase())))return 'clothing';
   return '';
 }
+export function isCleat(product={}) {
+  return /(?:crampons?|crapons?|krampons?|demi[-\s]?(?:crampons?)?|demu|dmi|كرامبون|كرابون|football boots|cleats)/iu.test(String(product.name||'')+' '+String(product.category||''));
+}
+export function withoutCleatColors(product) {
+  return isCleat(product)?{...product,colors:[]}:product;
+}
 export function typeRequiresSize(type){return type==='shoe'||type==='clothing';}
 export function cleanSizes(sizes,type){
   const allowed=SIZE_PRESETS[type]||[];
