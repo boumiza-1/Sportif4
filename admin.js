@@ -158,38 +158,40 @@ function promoPhoto(p){
   try{const url=new URL(p.image||'',location.origin);img.src=p.image&&['https:','http:'].includes(url.protocol)?url.href:imageFallback;}catch{img.src=imageFallback;}
   img.onerror=()=>{img.onerror=null;img.src=imageFallback;};return img;
 }
+let promoSelectedIds=new Set();
 function renderPromoPicker(){
-  const picker=$('#promoPicker'),grid=$('#promoProductGrid'),selected=$('#promoTarget').value,scope=$('#promoScope').value;
+  const picker=$('#promoPicker'),grid=$('#promoProductGrid'),selected=promoSelectedIds,scope=$('#promoScope').value;
   picker.classList.toggle('hidden',scope!=='product');grid.replaceChildren();$('#promoSelected').replaceChildren();
   if(scope!=='product')return;
   const term=$('#promoSearch').value.trim().toLowerCase();
   for(const p of products.filter(p=>[p.name,p.category,p.id].join(' ').toLowerCase().includes(term))){
-    const b=document.createElement('button');b.type='button';b.className='promo-product-choice'+(p.id===selected?' is-selected':'');b.setAttribute('aria-pressed',String(p.id===selected));
+    const b=document.createElement('button');b.type='button';b.className='promo-product-choice'+(selected.has(p.id)?' is-selected':'');b.setAttribute('aria-pressed',String(selected.has(p.id)));
     const name=document.createElement('strong');name.textContent=p.name;
     const meta=document.createElement('small');meta.textContent=(p.category||'')+' · Réf. '+p.id;
     const price=document.createElement('b');price.textContent=money(p.price);
     b.append(promoPhoto(p),name,price,meta);
-    b.onclick=()=>{$('#promoTarget').value=p.id;renderPromoPicker();previewPromotion();};grid.append(b);
+    b.onclick=()=>{if(selected.has(p.id))selected.delete(p.id);else selected.add(p.id);renderPromoPicker();previewPromotion();};grid.append(b);
   }
   if(!grid.children.length)grid.textContent='Aucun produit trouvé.';
-  const p=products.find(p=>p.id===selected);
-  if(p){const row=document.createElement('div');row.className='promo-selected-row';const label=document.createElement('div');label.textContent='Produit sélectionné : '+p.name+' · '+money(p.price)+' · Réf. '+p.id;row.append(promoPhoto(p),label);$('#promoSelected').append(row);}
-  else $('#promoSelected').textContent='Sélectionnez un produit avant de publier.';
+  const summary=$('#promoSelected');const count=document.createElement('strong');count.textContent=selected.size+' produit(s) sélectionné(s)';summary.append(count);
+  for(const p of products.filter(p=>selected.has(p.id))){const row=document.createElement('div');row.className='promo-selected-row';const label=document.createElement('div');label.textContent=p.name+' · '+money(p.price)+' · Réf. '+p.id;const remove=document.createElement('button');remove.type='button';remove.className='outline-btn';remove.textContent='Retirer';remove.onclick=()=>{selected.delete(p.id);renderPromoPicker();previewPromotion();};row.append(promoPhoto(p),label,remove);summary.append(row);}
+  if(!selected.size)summary.append(document.createTextNode(' — sélectionnez au moins un produit.'));
 }
 $('#promoSearch').addEventListener('input',renderPromoPicker);
+$('#promoClear').onclick=()=>{promoSelectedIds.clear();renderPromoPicker();previewPromotion();};
 $('#promoTarget').addEventListener('change',()=>{renderPromoPicker();previewPromotion();});
-function promoTargets(selected=''){
+function promoTargets(selected='',targets=[]){
   const scope=$('#promoScope').value,el=$('#promoTarget');
-  $('#promoTargetLabel').classList.toggle('hidden',scope==='all');
+  $('#promoTargetLabel').classList.toggle('hidden',scope!=='category');
+  promoSelectedIds=new Set(scope==='product'?targets.filter(id=>products.some(p=>p.id===id)):[]);
   el.replaceChildren();
-  const list=scope==='category'?[...new Set(products.map(p=>p.category).filter(Boolean))].map(x=>[x,x]):scope==='product'?products.map(p=>[p.id,p.name]):[];
-  if(scope==='product')el.add(new Option('Choisir un produit…',''));
+  const list=scope==='category'?[...new Set(products.map(p=>p.category).filter(Boolean))].map(x=>[x,x]):[];
   for(const [value,label] of list){const option=new Option(scope==='product'?label+' · '+money(products.find(p=>p.id===value)?.price)+' · '+value:label,value);el.add(option);}
   if(list.some(([v])=>v===selected))el.value=selected;
   $('#promoSearch').value='';renderPromoPicker();
 }
 function promoDraft(){
-  return normalizePromotion({enabled:true,title:$('#promoTitle').value,scope:$('#promoScope').value,target:$('#promoTarget').value,type:$('#promoType').value,value:Number($('#promoValue').value),start:tunisTime($('#promoStart').value),end:tunisTime($('#promoEnd').value),popup:$('#promoPopup').checked,countdown:$('#promoCountdown').checked});
+  return normalizePromotion({enabled:true,title:$('#promoTitle').value,scope:$('#promoScope').value,target:$('#promoTarget').value,targets:[...promoSelectedIds],type:$('#promoType').value,value:Number($('#promoValue').value),start:tunisTime($('#promoStart').value),end:tunisTime($('#promoEnd').value),popup:$('#promoPopup').checked,countdown:$('#promoCountdown').checked});
 }
 function previewPromotion(){
   const p=promoDraft(),box=$('#promoPreview');
@@ -197,11 +199,11 @@ function previewPromotion(){
   const matches=products.map(item=>({item,offer:applyPromotion(item,p,p.start)})).filter(x=>x.offer.promotionApplied);
   box.innerHTML='<h3>'+safe(p.title)+'</h3><p>'+matches.length+' produit(s) concernés — aperçu privé, aucun changement public.</p>'+'<div id="promoPreviewItems"></div>'+(p.popup?'<p>Notification : '+safe(p.title)+'</p>':'')+(p.countdown?'<p>Fin : '+new Date(p.end).toLocaleString('fr-TN',{timeZone:'Africa/Tunis'})+'</p>':'');
   const list=box.querySelector('#promoPreviewItems');
-  for(const {item,offer} of matches.slice(0,8)){const row=document.createElement('div');row.className='promo-selected-row';const copy=document.createElement('div');copy.innerHTML='<strong>'+safe(item.name)+'</strong><p><del>'+money(item.price)+'</del> → <b>'+money(offer.price)+'</b> '+safe(offer.badge)+'</p>';row.append(promoPhoto(item),copy);list.append(row);}
+  for(const {item,offer} of matches){const row=document.createElement('div');row.className='promo-selected-row';const copy=document.createElement('div');copy.innerHTML='<strong>'+safe(item.name)+'</strong><p><del>'+money(item.price)+'</del> → <b>'+money(offer.price)+'</b> '+safe(offer.badge)+'</p>';row.append(promoPhoto(item),copy);list.append(row);}
 }
 function renderPromotions(){
   const p=normalizePromotion(settings.promotion);
-  $('#promoTitle').value=p?.title||'Offre spéciale Sportifano';$('#promoScope').value=p?.scope||'all';promoTargets(p?.target);
+  $('#promoTitle').value=p?.title||'Offre spéciale Sportifano';$('#promoScope').value=p?.scope||'all';promoTargets(p?.target,p?.targets||[]);
   $('#promoType').value=p?.type||'percent';$('#promoValue').value=p?.value||20;
   $('#promoStart').value=tunisInput(p?.start||Date.now()-60000);$('#promoEnd').value=tunisInput(p?.end||Date.now()+86400000);
   $('#promoPopup').checked=p?.popup??true;$('#promoCountdown').checked=p?.countdown??true;
@@ -214,7 +216,8 @@ $('#promoTest').onclick=previewPromotion;
 $('#promoForm').onsubmit=async e=>{
   e.preventDefault();if(!isAdmin)return;const p=promoDraft();
   if(!p||p.end<=Date.now()||!products.some(item=>applyPromotion(item,p,p.start).promotionApplied)){toast('Vérifiez la période et la réduction : aucun produit éligible.');return;}
-  if(!confirm('Publier cette offre pour les clients ?'))return;
+  const eligible=products.filter(item=>applyPromotion(item,p,p.start).promotionApplied).length;
+  if(!confirm('Publier cette offre pour '+eligible+' produit(s) ?'))return;
   const btn=e.submitter;if(btn)btn.disabled=true;
   try{await updateDoc(doc(db,'settings','store'),{promotion:p});await load();toast('Promotion publiée');}catch(err){toast(readableError(err));}finally{if(btn)btn.disabled=false;}
 };

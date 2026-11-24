@@ -61,15 +61,16 @@ export function tunisianMobile(value){
 export function normalizePromotion(raw={}) {
   if(!raw || typeof raw!=='object') return null;
   const scope=String(raw.scope||''),type=String(raw.type||''),value=Number(raw.value),start=Number(raw.start),end=Number(raw.end);
-  if(!['all','category','product'].includes(scope)||!['percent','fixed'].includes(type)||!Number.isFinite(value)||value<=0||(type==='percent'&&value>=100)||!Number.isFinite(start)||!Number.isFinite(end)||end<=start|| (scope!=='all'&&!String(raw.target||'').trim()))return null;
-  return {enabled:raw.enabled===true,scope,target:String(raw.target||''),type,value,start,end,popup:raw.popup===true,countdown:raw.countdown===true,title:String(raw.title||'Offre spéciale Sportifano').slice(0,100)};
+  const targets=[...new Set((Array.isArray(raw.targets)?raw.targets:typeof raw.targets==='object'&&raw.targets!==null?Object.values(raw.targets):[raw.target]).filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()))];
+  if(!['all','category','product'].includes(scope)||!['percent','fixed'].includes(type)||!Number.isFinite(value)||value<=0||(type==='percent'&&value>=100)||!Number.isFinite(start)||!Number.isFinite(end)||end<=start|| (scope==='category'&&!String(raw.target||'').trim())||(scope==='product'&&!targets.length))return null;
+  return {enabled:raw.enabled===true,scope,target:scope==='product'?targets[0]||'':String(raw.target||''),...(scope==='product'?{targets}:{}),type,value,start,end,popup:raw.popup===true,countdown:raw.countdown===true,title:String(raw.title||'Offre spéciale Sportifano').slice(0,100)};
 }
 export function promotionActive(raw,now=Date.now()){
   const p=normalizePromotion(raw);return p&&p.enabled&&now>=p.start&&now<p.end?p:null;
 }
 export function applyPromotion(product,raw,now=Date.now()){
   const p=promotionActive(raw,now);
-  if(!p||product.active===false||Number(product.stock)<=0||(p.scope==='product'&&String(product.id)!==p.target)||(p.scope==='category'&&product.category!==p.target))return product;
+  if(!p||product.active===false||Number(product.stock)<=0||(p.scope==='product'&&!p.targets.includes(String(product.id)))||(p.scope==='category'&&product.category!==p.target))return product;
   const base=Number(product.price);
   if(!Number.isFinite(base)||base<=0||product.price==null||String(product.price).trim()==='')return product;
   const price=Math.round((p.type==='percent'?base*(1-p.value/100):p.value)*1000)/1000;
