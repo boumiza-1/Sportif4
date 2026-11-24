@@ -341,6 +341,7 @@
       if(productsResult.status==='fulfilled'){state.catalog=productsResult.value.docs.map(d=>({ ...d.data(),id:d.id })).filter(p=>p.active!==false&&typeof p.name==='string');state.loaded=true;}
       if(settingsResult.status==='fulfilled'&&settingsResult.value.exists())state.settings=settingsResult.value.data();
     } catch {}
+    try{const {applyPromotion,withoutCleatColors}=await import('/product-options.mjs');state.catalog=state.catalog.map(p=>applyPromotion(withoutCleatColors(p),state.settings.promotion));}catch{}
   }
   trigger.addEventListener('click',()=>toggle(!state.open));
   form.addEventListener('submit',e=>{e.preventDefault();send(input.value);});

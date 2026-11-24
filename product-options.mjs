@@ -56,3 +56,23 @@ export function tunisianMobile(value){
   // Local mobile numbers: eight digits, beginning with 2, 4, 5 or 9.
   return /^[2459]\d{7}$/.test(digits)?digits:null;
 }
+
+/* Single published campaign; prices are in TND, rounded to millimes. */
+export function normalizePromotion(raw={}) {
+  if(!raw || typeof raw!=='object') return null;
+  const scope=String(raw.scope||''),type=String(raw.type||''),value=Number(raw.value),start=Number(raw.start),end=Number(raw.end);
+  if(!['all','category','product'].includes(scope)||!['percent','fixed'].includes(type)||!Number.isFinite(value)||value<=0||(type==='percent'&&value>=100)||!Number.isFinite(start)||!Number.isFinite(end)||end<=start|| (scope!=='all'&&!String(raw.target||'').trim()))return null;
+  return {enabled:raw.enabled===true,scope,target:String(raw.target||''),type,value,start,end,popup:raw.popup===true,countdown:raw.countdown===true,title:String(raw.title||'Offre spéciale Sportifano').slice(0,100)};
+}
+export function promotionActive(raw,now=Date.now()){
+  const p=normalizePromotion(raw);return p&&p.enabled&&now>=p.start&&now<p.end?p:null;
+}
+export function applyPromotion(product,raw,now=Date.now()){
+  const p=promotionActive(raw,now);
+  if(!p||product.active===false||Number(product.stock)<=0||(p.scope==='product'&&String(product.id)!==p.target)||(p.scope==='category'&&product.category!==p.target))return product;
+  const base=Number(product.price);
+  if(!Number.isFinite(base)||base<=0||product.price==null||String(product.price).trim()==='')return product;
+  const price=Math.round((p.type==='percent'?base*(1-p.value/100):p.value)*1000)/1000;
+  if(price<=0||price>=base)return product;
+  return {...product,price,oldPrice:base,badge:'−'+Math.floor((base-price)/base*100+1e-8)+'%',promotionApplied:true};
+}

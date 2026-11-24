@@ -3,7 +3,7 @@ import {demoProducts,money,safe,imageFallback,toast,readableError} from './commo
 import {onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInAnonymously,signOut,updateProfile} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {collection,getDocs,addDoc,doc,getDoc,serverTimestamp,query,where} from './database-api.js';
 import {productPath,categoryPath,imageUrl,imageSrcset} from './seo-shared.mjs';
-import {productOptionState,validateSelectedSize,tunisianMobile,withoutCleatColors,isCleat} from './product-options.mjs';
+import {productOptionState,validateSelectedSize,tunisianMobile,withoutCleatColors,isCleat,applyPromotion,promotionActive} from './product-options.mjs';
 import {sortProducts} from './display-order.mjs';
 import {MetaPixel} from './meta-pixel.mjs';
 const $=s=>document.querySelector(s);let products=[],settings={},user=null,category='all',search='',sort='new';
@@ -128,7 +128,7 @@ function renderProductPage(){
     let robots=document.querySelector('meta[name="robots"]');if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.append(robots)}robots.content='noindex, follow';refreshProductSchema(null);return;
   }
   host.querySelector('h1').textContent=p.name;
-  host.querySelector('[data-seo-price]').textContent=validPrice(p)?money(p.price):'Prix à confirmer';
+  host.querySelector('[data-seo-price]').innerHTML=(p.promotionApplied?'<del class="old-price">'+money(p.oldPrice)+'</del> ':'')+(validPrice(p)?money(p.price):'Prix à confirmer');
   host.querySelector('[data-seo-stock]').textContent=stockState(p)==='available'?'En stock · disponibilité à confirmer lors de la commande':stockState(p)==='unavailable'?'Rupture de stock':'Disponibilité à confirmer';
   host.querySelector('.seo-description').textContent=p.description||'Consultez les tailles, couleurs et disponibilités de cet article auprès de la boutique.';
   const image=host.querySelector('.seo-product-image img');if(image){image.src=productImage(p,960);image.alt=p.name;const srcset=imageSrcset(p.image);if(srcset)image.srcset=srcset;else image.removeAttribute('srcset')}
@@ -187,7 +187,7 @@ function viewProduct(id){
   MetaPixel.viewProduct(p);
   if(!validPrice(p))return toast('Contactez la boutique pour confirmer le prix.');
   const opts=productOptionState(p),ready=liveCatalog&&opts.configured&&Number(p.stock)>0;
-  modal(p.name,'<div class="product-detail"><img src="'+safe(productImage(p))+'" alt="'+safe(p.name)+'"><div><small>'+safe(p.category||'')+'</small><h3>'+safe(p.name)+'</h3><p class="detail-price">'+money(p.price)+'</p><p class="muted">'+safe(p.description||'Produit Sportifano')+'</p><p class="muted">Stock : '+Number(p.stock||0)+'</p><form id="addProductForm"><div class="detail-options">'+productSizeControl(p)+(p.colors?.length?'<label>Couleur<select name="color" required><option value="">Choisissez une couleur</option>'+p.colors.map(x=>'<option value="'+safe(x)+'">'+safe(x)+'</option>').join('')+'</select></label>':'')+'</div>'+(!opts.configured?'<p class="error-text">Tailles non renseignées. La boutique doit configurer ce produit avant toute commande.</p>':'')+'<button type="submit" class="btn btn-dark wide" '+(!ready?'disabled':'')+'>AJOUTER AU PANIER ↗</button><button type="button" class="btn btn-outline wide" id="buyFromDetails" '+(!ready?'disabled':'')+'>PASSER LA COMMANDE ↗</button></form></div></div>');
+  modal(p.name,'<div class="product-detail"><img src="'+safe(productImage(p))+'" alt="'+safe(p.name)+'"><div><small>'+safe(p.category||'')+'</small><h3>'+safe(p.name)+'</h3><p class="detail-price">'+(p.promotionApplied?'<del class="old-price">'+money(p.oldPrice)+'</del> ':'')+money(p.price)+'</p><p class="muted">'+safe(p.description||'Produit Sportifano')+'</p><p class="muted">Stock : '+Number(p.stock||0)+'</p><form id="addProductForm"><div class="detail-options">'+productSizeControl(p)+(p.colors?.length?'<label>Couleur<select name="color" required><option value="">Choisissez une couleur</option>'+p.colors.map(x=>'<option value="'+safe(x)+'">'+safe(x)+'</option>').join('')+'</select></label>':'')+'</div>'+(!opts.configured?'<p class="error-text">Tailles non renseignées. La boutique doit configurer ce produit avant toute commande.</p>':'')+'<button type="submit" class="btn btn-dark wide" '+(!ready?'disabled':'')+'>AJOUTER AU PANIER ↗</button><button type="button" class="btn btn-outline wide" id="buyFromDetails" '+(!ready?'disabled':'')+'>PASSER LA COMMANDE ↗</button></form></div></div>');
   $('#addProductForm').onsubmit=e=>{
     e.preventDefault();const fd=new FormData(e.target);
     const result=validatedCartAdd({productId:p.id,size:String(fd.get('size')||''),color:String(fd.get('color')||''),quantity:1});
@@ -261,10 +261,11 @@ function openOrderForm({product=null,selected={},items=null}={}){
       const requested=direct?[{id:product.id,qty:1,size,color}]:validCart().map(i=>({...i}));
       // Refresh each item from Firebase immediately before submission.
       const orderItems=[];
+      const freshSettings=await getDoc(doc(db,'settings','store'));const freshPromotion=freshSettings.data()?.promotion;
       for(const entry of requested){
         const snap=await getDoc(doc(db,'products',entry.id));
         if(!snap.exists())throw Error('Produit indisponible. Veuillez actualiser la boutique.');
-        const current=withoutCleatColors({...snap.data(),id:entry.id});
+        const current=applyPromotion(withoutCleatColors({...snap.data(),id:entry.id}),freshPromotion);
         if(current.active===false||!validPrice(current))throw Error('Article indisponible.');
         const sz=validateSelectedSize(current,entry.size);
         if(!sz.ok)throw Error('Taille ou pointure non disponible pour : '+current.name);
@@ -279,6 +280,7 @@ function openOrderForm({product=null,selected={},items=null}={}){
         catch(err){throw Error('Commande invité indisponible pour le moment. Activez la connexion anonyme Firebase ou connectez-vous avec votre compte Sportifano.');}
       }
       const cost=orderItems.reduce((sum,p)=>sum+p.price*p.quantity,0);
+      if(Math.abs(cost-subtotal)>0.0005){throw Error('Le prix de votre panier a changé. Actualisez la page avant de confirmer.');}
       const name=String(fd.get('name')||'').trim(),city=String(fd.get('city')||'').trim(),address=String(fd.get('address')||'').trim();
       if(name.length<2||!city||address.length<5)throw Error('Complétez le nom, la ville et l’adresse.');
       const result=await addDoc(collection(db,'orders'),{
@@ -313,13 +315,16 @@ async function init(){
     if(!liveCatalog){products=sortProducts(snapshot.products);settings={...snapshot.settings,...settings};}
   }
 
-  products=products.map(withoutCleatColors);
+  const baseProducts=products.map(withoutCleatColors);
+  products=baseProducts.map(p=>applyPromotion(p,settings.promotion));
+  const campaign=settings.promotion;
+  if(campaign?.enabled){const refresh=()=>{const next=baseProducts.map(p=>applyPromotion(p,campaign));if(next.some((p,i)=>p.price!==products[i]?.price)){products=next;renderProducts();renderCart();if($('#seoProductContent [data-seo-price]'))renderProductPage();showPromotion();}};setInterval(refresh,1000);}
   document.body.dataset.catalogReady=liveCatalog?'live':products.length?'snapshot':'unavailable';
   const status=$('#catalogStatus');if(status&&!liveCatalog){status.hidden=false;status.textContent='Vous pouvez consulter les articles. Les prix et disponibilités doivent être vérifiés auprès de la boutique avant de commander.';}
   if(settings.instagram&&$('#socialLink')){try{const url=new URL(settings.instagram);if(url.protocol==='https:'){$('#socialLink').href=url.href;$('#socialLink').textContent='SUIVEZ-NOUS ↗';}}catch{}}
   if(settings.phone&&$('#footerPhone')){$('#footerPhone').href='tel:'+String(settings.phone).replace(/[^+0-9]/g,'');$('#footerPhone').textContent=settings.phone;}
   MetaPixel.configure(Object.hasOwn(settings,'metaPixelId')?settings.metaPixelId:'1614291526710689');
-  renderCategoryLinks();renderProducts();renderShowcase();renderCoverProducts();renderProductPage();renderCart();
+  renderCategoryLinks();renderProducts();renderShowcase();renderCoverProducts();renderProductPage();renderCart();showPromotion();
   // Stable shopping deep link that works even when GitHub Pages serves only repository-root files.
   const requested=new URLSearchParams(location.search).get('product');
   if(requested&&/^[A-Za-z0-9_-]{1,120}$/.test(requested)&&document.body.dataset.seoPage==='home'){
@@ -341,4 +346,22 @@ $('#mobileMenu').onclick=()=>$('#mobileLinks').classList.toggle('hidden');$('#ac
 $('#cartBtn').onclick=()=>{$('#cartDrawer').classList.remove('hidden');$('#shade').classList.remove('hidden')};
 $('#shade').onclick=close;document.querySelectorAll('[data-close]').forEach(x=>x.onclick=close);
 $('#cartContents').onclick=e=>{let q=e.target.closest('[data-qty]'),r=e.target.closest('[data-remove]');if(q){let item=cart.find(i=>i.key===q.dataset.qty);if(item){item.qty+=Number(q.dataset.delta);if(item.qty<=0)cart=cart.filter(i=>i!==item);else{let p=cartProduct(item.id);if(cart.filter(x=>x.id===item.id).reduce((a,x)=>a+x.qty,0)>Number(p.stock||0)){item.qty--;toast('Stock insuffisant')}}saveCart()}}if(r){cart=cart.filter(i=>i.key!==r.dataset.remove);saveCart()}};
+
+let promoTimer=null;
+function showPromotion(){
+  const p=promotionActive(settings.promotion);
+  if(!p||!p.popup||!products.some(item=>item.promotionApplied)||!liveCatalog||document.querySelector('#storePromoDialog'))return;
+  const key='sf-promo-'+JSON.stringify(p);
+  try{if(sessionStorage.getItem(key))return;}catch{}
+  const dialog=document.createElement('dialog');dialog.id='storePromoDialog';dialog.className='store-promo-dialog';
+  dialog.innerHTML='<button type="button" class="promo-close" aria-label="Fermer">×</button><p class="overline">SPORTIFANO / OFFRE SPÉCIALE</p><h2>'+safe(p.title)+'</h2><strong class="promo-value">'+(p.type==='percent'?'−'+safe(p.value)+' %':safe(money(p.value)))+'</strong><p>Sur les articles sélectionnés.</p><p id="promoClock"></p><button type="button" class="btn btn-light wide promo-go">PROFITER DE L’OFFRE ↗</button>';
+  document.body.append(dialog);
+  const closePromo=()=>{if(promoTimer)clearInterval(promoTimer);dialog.close();dialog.remove();};
+  dialog.querySelector('.promo-close').onclick=closePromo;
+  dialog.querySelector('.promo-go').onclick=()=>{closePromo();location.href='/#catalogue';};
+  dialog.addEventListener('cancel',e=>{e.preventDefault();closePromo();});
+  const tick=()=>{const left=Math.max(0,p.end-Date.now());if(!left){closePromo();return;}if(p.countdown){const seconds=Math.floor(left/1000);dialog.querySelector('#promoClock').textContent=Math.floor(seconds/86400)+' j · '+Math.floor(seconds%86400/3600)+' h · '+Math.floor(seconds%3600/60)+' min · '+seconds%60+' s';}};
+  dialog.showModal();try{sessionStorage.setItem(key,'1');}catch{}tick();promoTimer=setInterval(tick,1000);
+}
+
 $('#checkoutBtn').onclick=checkout;init();

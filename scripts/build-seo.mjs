@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { productPath, categoryPath, imageUrl, imageSrcset } from '../seo-shared.mjs';
 import { sortProducts, displayOrder } from '../display-order.mjs';
 
-import { isCleat } from '../product-options.mjs';
+import { isCleat, normalizePromotion, applyPromotion } from '../product-options.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MARKER = '.sportifano-seo-output';
@@ -54,6 +54,7 @@ function normalizeData(raw) {
     if (typeof rawSettings?.[field] === 'string') settings[field] = rawSettings[field].trim();
   }
   if (validPrice(rawSettings?.deliveryFee)) settings.deliveryFee = Number(rawSettings.deliveryFee);
+  const promotion=normalizePromotion(rawSettings?.promotion);if(promotion)settings.promotion=promotion;
   return { products:orderedProducts, settings };
 }
 
@@ -145,7 +146,7 @@ function productMain(product, related, baseUrl) {
   const crumbs = [{ name: 'Accueil', path: '/' }, ...(product.category ? [{ name: product.category, path: categoryPath(product.category) }] : []), { name: product.name, path: productPath(product.id) }];
   const description = product.description || 'Consultez les options et les informations disponibles pour cet article Sportifano.';
   const attributes = [['Tailles', product.sizes.join(', ')], ['Couleurs', product.colors.join(', ')]].filter(([, value]) => value);
-  return { crumbs, html: `<main class="seo-main">${breadcrumbs(crumbs)}<p id="catalogStatus" class="shell catalog-status" role="status" hidden></p><section class="shell seo-product" id="seoProductContent"><div class="seo-product-image">${imageMarkup(product, { priority: true, width: 960 })}</div><div class="seo-product-copy">${product.category ? `<p class="overline"><a href="${escape(categoryPath(product.category))}">${escape(product.category)}</a></p>` : ''}<h1>${escape(product.name)}</h1><p class="detail-price" data-seo-price>${escape(money(product.price))}</p><p data-seo-stock>${escape(stockText(product))}</p><p class="seo-description">${escape(description)}</p>${attributes.length ? `<dl class="seo-attributes">${attributes.map(([name, value]) => `<div><dt>${escape(name)}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl>` : ''}<button type="button" class="btn btn-dark" data-view="${escape(product.id)}"${availability(product) === 'OutOfStock' ? ' disabled' : ''}>${availability(product) === 'OutOfStock' ? 'RUPTURE DE STOCK' : 'CHOISIR MES OPTIONS →'}</button><p class="seo-stock-note">Paiement à la livraison en Tunisie. Le montant final et les frais de livraison sont confirmés par la boutique.</p><noscript><p>Pour choisir une taille ou commander, activez JavaScript. Les informations produit restent consultables sur cette page.</p></noscript></div></section>${related.length ? `<section class="shell collection"><h2>Autres produits ${escape(product.category || 'Sportifano')}</h2><div class="product-grid">${related.map(productCard).join('')}</div></section>` : ''}</main>` };
+  return { crumbs, html: `<main class="seo-main">${breadcrumbs(crumbs)}<p id="catalogStatus" class="shell catalog-status" role="status" hidden></p><section class="shell seo-product" id="seoProductContent"><div class="seo-product-image">${imageMarkup(product, { priority: true, width: 960 })}</div><div class="seo-product-copy">${product.category ? `<p class="overline"><a href="${escape(categoryPath(product.category))}">${escape(product.category)}</a></p>` : ''}<h1>${escape(product.name)}</h1><p class="detail-price" data-seo-price>${product.promotionApplied?`<del class="old-price">${escape(money(product.oldPrice))}</del> `:""}${escape(money(product.price))}</p><p data-seo-stock>${escape(stockText(product))}</p><p class="seo-description">${escape(description)}</p>${attributes.length ? `<dl class="seo-attributes">${attributes.map(([name, value]) => `<div><dt>${escape(name)}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl>` : ''}<button type="button" class="btn btn-dark" data-view="${escape(product.id)}"${availability(product) === 'OutOfStock' ? ' disabled' : ''}>${availability(product) === 'OutOfStock' ? 'RUPTURE DE STOCK' : 'CHOISIR MES OPTIONS →'}</button><p class="seo-stock-note">Paiement à la livraison en Tunisie. Le montant final et les frais de livraison sont confirmés par la boutique.</p><noscript><p>Pour choisir une taille ou commander, activez JavaScript. Les informations produit restent consultables sur cette page.</p></noscript></div></section>${related.length ? `<section class="shell collection"><h2>Autres produits ${escape(product.category || 'Sportifano')}</h2><div class="product-grid">${related.map(productCard).join('')}</div></section>` : ''}</main>` };
 }
 
 function productData(product, config) {
@@ -197,7 +198,8 @@ export async function buildSite({ rootDir = ROOT, outDir = path.join(rootDir, 'd
   if (!baseUrl && origin.hostname !== canonicalHost) throw new Error('Le domaine SEO et CNAME ne correspondent pas.');
   const template = await readFile(path.join(rootDir, 'index.html'), 'utf8');
   if (!/<main\b/.test(template) || !/<\/main>/.test(template)) throw new Error('Le template accueil ne contient pas de main.');
-  const { products, settings } = normalizeData(data ?? await fetchPublicCatalog(rootDir));
+  const { products:baseProducts, settings } = normalizeData(data ?? await fetchPublicCatalog(rootDir));
+  const products=baseProducts.map(p=>applyPromotion(p,settings.promotion));
   const names = [...new Set([...(config.defaultCategories || []), ...products.map(product => product.category).filter(Boolean)])];
   const categories = names.map(name => ({ name, populated: products.some(product => product.category === name) }));
   const runtime = await Promise.all(RUNTIME_FILES.map(async name => [name, await readFile(path.join(rootDir, name))]));
@@ -274,7 +276,7 @@ export async function buildSite({ rootDir = ROOT, outDir = path.join(rootDir, 'd
   const notFound = '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,follow"><title>Page introuvable | Sportifano</title><link rel="stylesheet" href="/style.css"></head><body><main class="shell collection"><h1>Cette page est introuvable</h1><p>Le produit a peut-être été retiré ou son adresse a changé.</p><a class="btn btn-dark" href="/">Retour à la boutique Sportifano</a></main></body></html>';
   await writeFile(path.join(outDir, '404.html'), notFound);
   const manifest = { sourceCommit: process.env.GITHUB_SHA || null, generatedAt: new Date(now).toISOString(), products: products.length, categories: categories.length, indexableCategories: categories.filter(category => category.populated).length, sitemapUrls: sitemap.length, baseUrl: config.baseUrl };
-  await writeFile(path.join(outDir, 'catalogue.json'), JSON.stringify({ generatedAt: manifest.generatedAt, products, settings }));
+  await writeFile(path.join(outDir, 'catalogue.json'), JSON.stringify({ generatedAt: manifest.generatedAt, products:baseProducts, settings }));
   await writeFile(path.join(outDir, 'seo-build.json'), JSON.stringify(manifest, null, 2) + '\n');
   return manifest;
 }

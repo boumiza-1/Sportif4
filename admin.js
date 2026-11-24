@@ -3,7 +3,7 @@ import {money,safe,imageFallback,toast,readableError,demoProducts} from './commo
 import {onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {collection,doc,getDoc,getDocs,setDoc,addDoc,updateDoc,deleteDoc,serverTimestamp} from './database-api.js';
 import {uploadCloudinaryImage} from './cloudinary.js';
-import {SIZE_PRESETS,inferProductType,typeRequiresSize,cleanSizes,PRODUCT_TYPE_LABELS,isCleat} from './product-options.mjs';
+import {SIZE_PRESETS,inferProductType,typeRequiresSize,cleanSizes,PRODUCT_TYPE_LABELS,isCleat,normalizePromotion,applyPromotion} from './product-options.mjs';
 import {sortProducts,displayOrder} from './display-order.mjs';
 import {wireAdminInstallControls,startAdminExperience,stopAdminExperience,updateAdminPushSettings} from './admin-notifications.mjs';
 const $=s=>document.querySelector(s);let user=null,products=[],orders=[],categories=[],settings={},tab='dashboard',isAdmin=false;
@@ -15,9 +15,9 @@ async function uploadImage(file,folder,progress){
 }
 function choosePreview(input,el){let file=input.files?.[0];if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){input.value='';toast('Image JPG/PNG/WEBP, max 5 Mo');return}let url=URL.createObjectURL(file);showPreview(el,url);el.onload=()=>URL.revokeObjectURL(url)}
 const table=(heads,rows)=>`<table class="data-table"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${heads.length}" class="muted">Aucune donnée</td></tr>`}</tbody></table>`;
-function showTab(name){tab=name;document.querySelectorAll('.admin-section').forEach(x=>x.classList.toggle('hidden',x.id!==name+'Tab'));document.querySelectorAll('#adminNav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));const titles={dashboard:'Tableau de bord',products:'Produits',orders:'Commandes',categories:'Catégories',settings:'Paramètres'};$('#pageTitle').textContent=titles[name];$('#pageBreadcrumb').textContent='GESTION / '+titles[name].toUpperCase();$('.admin-sidebar').classList.remove('open')}
+function showTab(name){tab=name;document.querySelectorAll('.admin-section').forEach(x=>x.classList.toggle('hidden',x.id!==name+'Tab'));document.querySelectorAll('#adminNav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));const titles={dashboard:'Tableau de bord',products:'Produits',orders:'Commandes',categories:'Catégories',settings:'Paramètres',promotions:'Marketing & Promotions'};$('#pageTitle').textContent=titles[name];$('#pageBreadcrumb').textContent='GESTION / '+titles[name].toUpperCase();$('.admin-sidebar').classList.remove('open')}
 async function load(){try{let [p,o,c,s]=await Promise.all([getDocs(collection(db,'products')),getDocs(collection(db,'orders')),getDocs(collection(db,'categories')),getDoc(doc(db,'settings','store'))]);products=sortProducts(p.docs.map(d=>({id:d.id,...d.data()})));orders=o.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));categories=c.docs.map(d=>({id:d.id,...d.data()}));settings=s.exists()?s.data():{};render()}catch(e){toast(readableError(e))}}
-function render(){renderDashboard();renderProducts();renderOrders();renderCategories();renderSettings()}
+function render(){renderDashboard();renderProducts();renderOrders();renderCategories();renderSettings();renderPromotions()}
 function orderRows(list){return list.map(o=>`<tr><td>${o.items?.[0]?'<img class="admin-order-mini" src="'+safe(o.items[0].image||products.find(p=>p.id===o.items[0].productId)?.image||imageFallback)+'" alt="Produit commandé" loading="lazy">':''}<b>#${safe(o.id.slice(0,8))}</b><br><span class="tiny">${o.createdAt?.toDate?.().toLocaleString('fr-TN')||'—'}</span></td><td>${safe(o.name)}<br><span class="tiny">${safe(o.phone||'')}</span></td><td>${money(o.total)}</td><td><span class="status ${safe(o.status)}">${safe(statuses[o.status]||o.status)}</span></td><td><button data-order="${safe(o.id)}">Détails</button></td></tr>`).join('')}
 function renderDashboard(){$('#statProducts').textContent=products.length;$('#statOrders').textContent=orders.length;$('#statPending').textContent=orders.filter(o=>o.status==='pending').length;$('#statRevenue').textContent=money(orders.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+Number(o.total||0),0));$('#recentOrders').innerHTML=table(['Commande','Client','Total','Statut',''],orderRows(orders.slice(0,6)))}
 function renderProducts(){let term=$('#adminProductSearch').value.toLowerCase(),list=sortProducts(products.filter(p=>(p.name||'').toLowerCase().includes(term)));$('#adminProducts').innerHTML=table(['Ordre','Produit','Catégorie','Prix','Stock','Visible','Actions'],list.map(p=>`<tr><td class="admin-product-position">${displayOrder(p.displayOrder)??'—'}</td><td><img src="${safe(p.image||imageFallback)}" alt=""><b>${safe(p.name)}</b></td><td>${safe(p.category)}</td><td>${money(p.price)}</td><td>${Number(p.stock||0)}</td><td>${p.active!==false?'Oui':'Non'}</td><td><button type="button" data-copy-product="${safe(p.id)}" title="Copier le lien unique du produit">Copier lien Ads</button><button data-edit="${safe(p.id)}">Modifier</button><button data-delete="${safe(p.id)}">Supprimer</button></td></tr>`).join(''))}
@@ -143,10 +143,50 @@ $('#adminProducts').onclick=async e=>{const copy=e.target.closest('[data-copy-pr
 function orderClick(e){let b=e.target.closest('[data-order]');if(b)showOrder(b.dataset.order)}$('#adminOrders').onclick=orderClick;$('#recentOrders').onclick=orderClick;
 $('#categoryForm').onsubmit=async e=>{e.preventDefault();let name=$('#categoryName').value.trim();if(!name)return;if(categories.some(c=>c.name.toLowerCase()===name.toLowerCase()))return toast('Catégorie déjà existante');try{await addDoc(collection(db,'categories'),{name,createdAt:serverTimestamp()});$('#categoryName').value='';toast('Catégorie ajoutée');await load()}catch(err){toast(readableError(err))}};
 $('#adminCategories').onclick=async e=>{let b=e.target.closest('[data-delete-category]');if(!b||!confirm('Supprimer cette catégorie ?'))return;try{await deleteDoc(doc(db,'categories',b.dataset.deleteCategory));await load()}catch(err){toast(readableError(err))}};
-$('#settingsForm').onsubmit=async e=>{e.preventDefault();let data={name:$('#settingName').value.trim(),phone:$('#settingPhone').value.trim(),instagram:$('#settingInstagram').value.trim(),metaPixelId:$('#settingMetaPixel').value.trim(),pushVapidKey:$('#settingPushVapidKey').value.trim(),deliveryFee:Number($('#settingDelivery').value)||0,coverImage:settings.coverImage||'',updatedAt:serverTimestamp()};try{if(data.metaPixelId&&!/^\d{12,20}$/.test(data.metaPixelId))throw Error('Meta Pixel ID invalide. Utilisez uniquement 12 à 20 chiffres.');if($('#coverFile').files[0]){data.coverImage=await uploadImage($('#coverFile').files[0],'covers',$('#coverProgress'));}await setDoc(doc(db,'settings','store'),data);toast('Paramètres sauvegardés');await load();updateAdminPushSettings(settings)}catch(err){toast(readableError(err));$('#coverProgress').textContent='Erreur : '+(err.message||readableError(err))}};
+$('#settingsForm').onsubmit=async e=>{e.preventDefault();let data={name:$('#settingName').value.trim(),phone:$('#settingPhone').value.trim(),instagram:$('#settingInstagram').value.trim(),metaPixelId:$('#settingMetaPixel').value.trim(),pushVapidKey:$('#settingPushVapidKey').value.trim(),deliveryFee:Number($('#settingDelivery').value)||0,coverImage:settings.coverImage||'',updatedAt:serverTimestamp()};try{if(data.metaPixelId&&!/^\d{12,20}$/.test(data.metaPixelId))throw Error('Meta Pixel ID invalide. Utilisez uniquement 12 à 20 chiffres.');if($('#coverFile').files[0]){data.coverImage=await uploadImage($('#coverFile').files[0],'covers',$('#coverProgress'));}await updateDoc(doc(db,'settings','store'),data);toast('Paramètres sauvegardés');await load();updateAdminPushSettings(settings)}catch(err){toast(readableError(err));$('#coverProgress').textContent='Erreur : '+(err.message||readableError(err))}};
 
 $('#importDemoBtn').onclick=async()=>{if(products.length&&!confirm('Ajouter les 8 articles de démonstration en plus des produits existants ?'))return;let b=$('#importDemoBtn');b.disabled=true;try{for(const p of demoProducts){let {id,...data}=p;await addDoc(collection(db,'products'),{...data,description:'Sportifano collection',createdAt:serverTimestamp()})}toast('8 produits de démonstration importés');await load()}catch(e){toast(readableError(e))}finally{b.disabled=false}};
 
 $('#pFile').addEventListener('change',()=>choosePreview($('#pFile'),$('#productPreview')));
 $('#coverFile').addEventListener('change',()=>choosePreview($('#coverFile'),$('#coverPreview')));
 $('#removeCoverBtn').addEventListener('click',async()=>{if(!confirm('Revenir à la couverture par défaut ?'))return;try{await updateDoc(doc(db,'settings','store'),{coverImage:'',updatedAt:serverTimestamp()});$('#coverFile').value='';await load();toast('Couverture réinitialisée')}catch(e){toast(readableError(e))}});
+
+const tunisInput=ms=>new Date(ms+3600000).toISOString().slice(0,16);
+const tunisTime=value=>Date.parse(value+':00+01:00');
+function promoTargets(selected=''){
+  const scope=$('#promoScope').value,el=$('#promoTarget');
+  $('#promoTargetLabel').classList.toggle('hidden',scope==='all');
+  el.replaceChildren();
+  const list=scope==='category'?[...new Set(products.map(p=>p.category).filter(Boolean))].map(x=>[x,x]):scope==='product'?products.map(p=>[p.id,p.name]):[];
+  for(const [value,label] of list){const option=new Option(label,value);el.add(option);}
+  if(list.some(([v])=>v===selected))el.value=selected;
+}
+function promoDraft(){
+  return normalizePromotion({enabled:true,title:$('#promoTitle').value,scope:$('#promoScope').value,target:$('#promoTarget').value,type:$('#promoType').value,value:Number($('#promoValue').value),start:tunisTime($('#promoStart').value),end:tunisTime($('#promoEnd').value),popup:$('#promoPopup').checked,countdown:$('#promoCountdown').checked});
+}
+function previewPromotion(){
+  const p=promoDraft(),box=$('#promoPreview');
+  if(!p){box.textContent='Vérifiez la réduction, le produit et les dates.';return;}
+  const matches=products.map(item=>({item,offer:applyPromotion(item,p,p.start)})).filter(x=>x.offer.promotionApplied);
+  box.innerHTML='<h3>'+safe(p.title)+'</h3><p>'+matches.length+' produit(s) concernés — aperçu privé, aucun changement public.</p>'+matches.slice(0,8).map(({item,offer})=>'<p>'+safe(item.name)+' : <del>'+money(item.price)+'</del> → <strong>'+money(offer.price)+'</strong> '+safe(offer.badge)+'</p>').join('')+(p.popup?'<p>Notification : '+safe(p.title)+'</p>':'')+(p.countdown?'<p>Fin : '+new Date(p.end).toLocaleString('fr-TN',{timeZone:'Africa/Tunis'})+'</p>':'');
+}
+function renderPromotions(){
+  const p=normalizePromotion(settings.promotion);
+  $('#promoTitle').value=p?.title||'Offre spéciale Sportifano';$('#promoScope').value=p?.scope||'all';promoTargets(p?.target);
+  $('#promoType').value=p?.type||'percent';$('#promoValue').value=p?.value||20;
+  $('#promoStart').value=tunisInput(p?.start||Date.now()-60000);$('#promoEnd').value=tunisInput(p?.end||Date.now()+86400000);
+  $('#promoPopup').checked=p?.popup??true;$('#promoCountdown').checked=p?.countdown??true;
+  $('#promoStatus').textContent=!p||!p.enabled?'Aucune campagne publiée active.':Date.now()>=p.end?'Campagne expirée.':Date.now()<p.start?'Campagne programmée.':'Campagne active.';
+  previewPromotion();
+}
+$('#promoScope').addEventListener('change',()=>{promoTargets();previewPromotion()});
+$('#promoForm').addEventListener('input',previewPromotion);
+$('#promoTest').onclick=previewPromotion;
+$('#promoForm').onsubmit=async e=>{
+  e.preventDefault();if(!isAdmin)return;const p=promoDraft();
+  if(!p||p.end<=Date.now()||!products.some(item=>applyPromotion(item,p,p.start).promotionApplied)){toast('Vérifiez la période et la réduction : aucun produit éligible.');return;}
+  if(!confirm('Publier cette offre pour les clients ?'))return;
+  const btn=e.submitter;if(btn)btn.disabled=true;
+  try{await updateDoc(doc(db,'settings','store'),{promotion:p});await load();toast('Promotion publiée');}catch(err){toast(readableError(err));}finally{if(btn)btn.disabled=false;}
+};
+$('#promoStop').onclick=async()=>{if(!isAdmin)return;try{await updateDoc(doc(db,'settings','store'),{'promotion/enabled':false});await load();toast('Promotion désactivée');}catch(err){toast(readableError(err));}};

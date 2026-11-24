@@ -302,3 +302,5 @@ button:disabled{cursor:not-allowed;opacity:.65}a:focus-visible,button:focus-visi
   .product-card .product-card-actions button{font-size:9px;gap:4px}
   .product-card .product-card-actions button svg{width:14px;height:14px;flex-basis:14px}
 }
+
+.store-promo-dialog{width:min(92vw,420px);max-height:85vh;border:1px solid #39433a;border-radius:20px;background:#141a17;color:#fff;padding:36px 25px;text-align:center;box-shadow:0 22px 90px #0008}.store-promo-dialog::backdrop{background:#0009}.store-promo-dialog h2{font-size:28px;margin:12px 0}.store-promo-dialog .promo-value{display:block;font-size:58px;line-height:1.1;color:#c8f536;margin:14px 0}.store-promo-dialog .promo-close{position:absolute;right:12px;top:8px;background:none;color:white;border:0;font-size:28px;cursor:pointer}.store-promo-dialog .promo-go{margin-top:18px}.store-promo-dialog p{margin:10px 0}
