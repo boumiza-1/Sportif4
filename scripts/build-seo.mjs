@@ -4,6 +4,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { productPath, categoryPath, imageUrl, imageSrcset } from '../seo-shared.mjs';
 import { sortProducts, displayOrder } from '../display-order.mjs';
 
+import { isCleat } from '../product-options.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MARKER = '.sportifano-seo-output';
 const PUBLIC_FIELDS = ['name', 'category', 'price', 'oldPrice', 'stock', 'active', 'badge', 'description', 'image', 'sizes', 'colors', 'displayOrder', 'createdAt', 'updatedAt'];
@@ -40,7 +42,7 @@ function normalizeData(raw) {
     product.name = value.name.trim();
     product.category = typeof value.category === 'string' ? value.category.trim() : '';
     product.sizes = asList(value.sizes);
-    product.colors = asList(value.colors);
+    product.colors = isCleat(value) ? [] : asList(value.colors);
     product.id = id; // A stored id field must never override the Firebase key.
     products.push(product);
   }
